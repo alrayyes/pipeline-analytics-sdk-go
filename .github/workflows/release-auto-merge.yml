@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   auto-merge:
-    if: contains(github.event.pull_request.labels.*.name, 'autorelease: pending')
+    if: "contains(github.event.pull_request.labels.*.name, 'autorelease: pending')"
     runs-on: ubuntu-latest
     steps:
       - run: gh pr merge --auto --squash "$PR_URL"
