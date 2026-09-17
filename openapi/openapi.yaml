@@ -1,0 +1,770 @@
+openapi: 3.1.0
+info:
+  title: pipeline-analytics API
+  version: "1.0.0"
+  description: >
+    Self-hosted CI pipeline analytics for GitHub Actions and Forgejo Actions.
+    Every endpoint except the WebAuthn ceremony and the forge webhook
+    receivers requires an authenticated session (see dashboard-auth/spec.md).
+  license:
+    name: AGPL-3.0
+    identifier: AGPL-3.0-only
+servers:
+  - url: /
+
+security:
+  - sessionCookie: []
+
+paths:
+  /api/version:
+    get:
+      operationId: getVersion
+      summary: The running server's build version
+      description: >
+        Public and unauthenticated -- the dashboard's own footer fetches
+        this to render a version chip linking to that release's notes.
+      tags: [meta]
+      security: []
+      responses:
+        "200":
+          description: Build version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Version"
+
+  /api/repos:
+    get:
+      operationId: listRepos
+      summary: List tracked repositories
+      tags: [repos]
+      parameters:
+        - $ref: "#/components/parameters/RepoForgeFilter"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: A page of tracked repositories
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RepoList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: registerRepo
+      summary: Register a repository for tracking
+      description: >
+        Stores the supplied token encrypted at rest and creates a webhook on
+        the repository (forge-ingestion/spec.md's "Repo tracking
+        registration" and "Webhook registration on tracking").
+      tags: [repos]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepoRegistration"
+      responses:
+        "201":
+          description: Repository registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Repo"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/repos/discover:
+    post:
+      operationId: discoverRepos
+      summary: List repositories a not-yet-registered token can access
+      description: >
+        Lets the registration UI offer a picker instead of asking the user
+        to type "owner/name" by hand. The token is used for this one lookup
+        and never stored.
+      tags: [repos]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepoDiscoveryRequest"
+      responses:
+        "200":
+          description: Repositories accessible to the token
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example: ["alrayyes/pipeline-analytics"]
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+
+  /api/repos/{repoId}:
+    delete:
+      operationId: untrackRepo
+      summary: Stop tracking a repository
+      description: >
+        Removes the repo and cascades to its stored runs, jobs, and steps.
+        Does not attempt to delete the webhook created on the forge at
+        registration time.
+      tags: [repos]
+      parameters:
+        - $ref: "#/components/parameters/RepoId"
+      responses:
+        "204":
+          description: Repository untracked
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/repos/{repoId}/usage:
+    get:
+      operationId: getRepoUsage
+      summary: Runner-minutes usage per workflow for a repository
+      tags: [repos]
+      parameters:
+        - $ref: "#/components/parameters/RepoId"
+        - $ref: "#/components/parameters/Window"
+      responses:
+        "200":
+          description: Usage broken down by workflow
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UsageEntry"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/pipelines:
+    get:
+      operationId: listPipelines
+      summary: Overview of every tracked pipeline and its health status
+      tags: [pipelines]
+      responses:
+        "200":
+          description: Pipeline overview
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PipelineSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/pipelines/{pipelineId}:
+    get:
+      operationId: getPipeline
+      summary: Duration and failure-rate trend for one pipeline
+      tags: [pipelines]
+      parameters:
+        - $ref: "#/components/parameters/PipelineId"
+        - $ref: "#/components/parameters/Window"
+      responses:
+        "200":
+          description: Pipeline detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/pipelines/{pipelineId}/steps:
+    get:
+      operationId: getPipelineSteps
+      summary: Step breakdown -- duration ranking, queue/exec split, failure rate, flaky flag
+      tags: [pipelines]
+      parameters:
+        - $ref: "#/components/parameters/PipelineId"
+        - $ref: "#/components/parameters/Window"
+      responses:
+        "200":
+          description: >
+            Steps ordered by duration contribution, highest first
+            (pipeline-metrics/spec.md's "Slowest-step ranking").
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Step"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/insights/github-rate-limit:
+    get:
+      operationId: getGitHubRateLimitInsights
+      summary: GitHub REST API rate-limit usage, grouped by token
+      description: >
+        One entry per distinct GitHub token this app holds (not per repo --
+        the same token often tracks more than one repo), with the repos it
+        covers and the token's most recently observed rate-limit status.
+        That status is read from a real API response's X-RateLimit-*
+        headers rather than a dedicated poll, per GitHub's own guidance
+        (docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api)
+        -- `status` is absent until a request has actually been made with
+        that token (reconciliation polling, or webhook/discovery calls).
+      tags: [insights]
+      responses:
+        "200":
+          description: GitHub token usage
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GitHubTokenUsage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/steps/unhealthy:
+    get:
+      operationId: listUnhealthySteps
+      summary: Every flaky or failing step across every tracked pipeline, grouped by pipeline
+      tags: [pipelines]
+      parameters:
+        - $ref: "#/components/parameters/Window"
+      responses:
+        "200":
+          description: >
+            One entry per pipeline with at least one flaky or failing step; a
+            fully healthy pipeline contributes nothing.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PipelineStepsGroup"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/auth/register/options:
+    post:
+      operationId: webauthnRegisterOptions
+      summary: Begin WebAuthn credential registration (first run only)
+      tags: [auth]
+      security: []
+      responses:
+        "200":
+          description: >
+            WebAuthn PublicKeyCredentialCreationOptions. The Set-Cookie header
+            carries an opaque, server-side ceremony reference (not the
+            session itself) that the subsequent POST /api/auth/register call
+            must present back to complete the ceremony it belongs to.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebAuthnCreationOptions"
+        "409":
+          description: A user account already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/auth/register:
+    post:
+      operationId: webauthnRegister
+      summary: Complete WebAuthn credential registration
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebAuthnAttestationResponse"
+      responses:
+        "201":
+          description: Account created, session established
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: A user account already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/auth/login/options:
+    post:
+      operationId: webauthnLoginOptions
+      summary: Begin WebAuthn login
+      tags: [auth]
+      security: []
+      responses:
+        "200":
+          description: >
+            WebAuthn PublicKeyCredentialRequestOptions. The Set-Cookie header
+            carries an opaque, server-side ceremony reference (not the
+            session itself) that the subsequent POST /api/auth/login call
+            must present back to complete the ceremony it belongs to.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebAuthnRequestOptions"
+        "404":
+          description: No account has been registered yet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/auth/login:
+    post:
+      operationId: webauthnLogin
+      summary: Complete WebAuthn login
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebAuthnAssertionResponse"
+      responses:
+        "200":
+          description: Session established
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+        "401":
+          description: Assertion did not verify
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/auth/logout:
+    post:
+      operationId: webauthnLogout
+      summary: End the current session
+      tags: [auth]
+      responses:
+        "204":
+          description: Session ended
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /webhooks/github:
+    post:
+      operationId: githubWebhook
+      summary: GitHub Actions webhook receiver (workflow_run / workflow_job events)
+      tags: [webhooks]
+      security: []
+      parameters:
+        - name: X-Hub-Signature-256
+          in: header
+          required: true
+          description: HMAC-SHA256 signature over the raw request body, keyed by the repository's webhook secret.
+          schema:
+            type: string
+        - name: X-GitHub-Event
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: GitHub's workflow_run or workflow_job event payload.
+      responses:
+        "202":
+          description: Accepted -- signature verified, event queued for ingestion
+        "401":
+          description: Signature missing or invalid; payload discarded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /webhooks/forgejo:
+    post:
+      operationId: forgejoWebhook
+      summary: Forgejo Actions webhook receiver
+      tags: [webhooks]
+      security: []
+      parameters:
+        - name: X-Forgejo-Signature
+          in: header
+          required: true
+          description: HMAC-SHA256 signature over the raw request body, keyed by the repository's webhook secret.
+          schema:
+            type: string
+        - name: X-Forgejo-Event
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Forgejo's workflow run/job event payload.
+      responses:
+        "202":
+          description: Accepted -- signature verified, event queued for ingestion
+        "401":
+          description: Signature missing or invalid; payload discarded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: session
+
+  parameters:
+    RepoId:
+      name: repoId
+      in: path
+      required: true
+      schema:
+        type: string
+    PipelineId:
+      name: pipelineId
+      in: path
+      required: true
+      schema:
+        type: string
+    Window:
+      name: window
+      in: query
+      required: false
+      description: Trailing run count or duration the trend/ranking is computed over. Defaults to a server-chosen rolling window.
+      schema:
+        type: string
+    RepoForgeFilter:
+      name: forge
+      in: query
+      required: false
+      description: Restrict the list to one forge. Omitted returns every forge.
+      schema:
+        $ref: "#/components/schemas/Forge"
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Max items to return. Omitted returns every matching item, unpaginated.
+      schema:
+        type: integer
+        minimum: 1
+    Offset:
+      name: offset
+      in: query
+      required: false
+      description: Items to skip before the returned page.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+  responses:
+    BadRequest:
+      description: The request body failed validation
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: No valid session
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: No resource with that id
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    BadGateway:
+      description: The originating forge rejected the request or couldn't be reached
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+
+    Version:
+      type: object
+      required: [version]
+      properties:
+        version:
+          type: string
+          description: "The build's tagged version (e.g. \"v1.2.3\"), or \"dev\" for an untagged local build."
+
+    Forge:
+      type: string
+      enum: [github, forgejo]
+
+    IngestionStatus:
+      type: string
+      enum: [pending, active, degraded]
+
+    Repo:
+      type: object
+      required: [id, forge, identifier, tokenMasked, ingestionStatus]
+      properties:
+        id:
+          type: string
+        forge:
+          $ref: "#/components/schemas/Forge"
+        identifier:
+          type: string
+          description: "owner/name on the forge."
+        forgejoInstanceUrl:
+          type: string
+          format: uri
+          description: Set only when forge is forgejo.
+        tokenMasked:
+          type: string
+          description: "The stored token's display form, e.g. \"****1234\" (forge-ingestion/spec.md's \"Credential storage\" -- never the full value)."
+        ingestionStatus:
+          $ref: "#/components/schemas/IngestionStatus"
+        ingestionStatusReason:
+          type: string
+          description: Set when ingestionStatus is degraded.
+
+    RepoList:
+      type: object
+      required: [repos, hasMore]
+      properties:
+        repos:
+          type: array
+          items:
+            $ref: "#/components/schemas/Repo"
+        hasMore:
+          type: boolean
+          description: True when repos beyond this page match the filter. Always false when limit was omitted.
+
+    RepoRegistration:
+      type: object
+      required: [forge, identifier, token]
+      properties:
+        forge:
+          $ref: "#/components/schemas/Forge"
+        identifier:
+          type: string
+        forgejoInstanceUrl:
+          type: string
+          format: uri
+        token:
+          type: string
+          description: Repo-scoped personal access token. Never echoed back.
+
+    RepoDiscoveryRequest:
+      type: object
+      required: [forge, token]
+      properties:
+        forge:
+          $ref: "#/components/schemas/Forge"
+        forgejoInstanceUrl:
+          type: string
+          format: uri
+        token:
+          type: string
+          description: Never stored -- used for this one lookup only.
+
+    HealthStatus:
+      type: string
+      enum: [healthy, unhealthy]
+
+    PipelineSummary:
+      type: object
+      required: [id, repoId, name, healthStatus]
+      properties:
+        id:
+          type: string
+        repoId:
+          type: string
+        name:
+          type: string
+        healthStatus:
+          $ref: "#/components/schemas/HealthStatus"
+        triggeredSignals:
+          type: array
+          description: Which signal(s) triggered an unhealthy status (pipeline-metrics/spec.md).
+          items:
+            type: string
+            enum: [failure_rate, duration_regression, flaky_step]
+        lastRunAt:
+          type: string
+          format: date-time
+          description: The most recent run's start time. Absent if the pipeline has no runs.
+
+    Trend:
+      type: object
+      required: [timestamps]
+      properties:
+        timestamps:
+          type: array
+          items:
+            type: string
+            format: date-time
+        p50:
+          type: array
+          items:
+            type: number
+          description: Seconds. Present on a duration trend.
+        p90:
+          type: array
+          items:
+            type: number
+          description: Seconds. Present on a duration trend.
+        rate:
+          type: array
+          items:
+            type: number
+          description: 0-1. Present on a failure-rate trend.
+
+    PipelineDetail:
+      allOf:
+        - $ref: "#/components/schemas/PipelineSummary"
+        - type: object
+          properties:
+            durationTrend:
+              $ref: "#/components/schemas/Trend"
+            failureRateTrend:
+              $ref: "#/components/schemas/Trend"
+
+    Step:
+      type: object
+      required: [id, name, durationContributionSeconds, queueSeconds, execSeconds, failureRate, flaky]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        durationContributionSeconds:
+          type: number
+        queueSeconds:
+          type: number
+        execSeconds:
+          type: number
+        failureRate:
+          type: number
+        flaky:
+          type: boolean
+        forgeUrl:
+          type: string
+          format: uri
+          description: Deep link to this step's log on the originating forge.
+
+    PipelineStepsGroup:
+      type: object
+      required: [pipelineId, pipelineName, repoId, steps]
+      properties:
+        pipelineId:
+          type: string
+        pipelineName:
+          type: string
+        repoId:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/Step"
+
+    UsageEntry:
+      type: object
+      required: [workflow, runnerMinutes]
+      properties:
+        workflow:
+          type: string
+        runnerMinutes:
+          type: number
+
+    RateLimitStatus:
+      type: object
+      required: [limit, remaining, used, resetAt]
+      properties:
+        limit:
+          type: integer
+          description: Requests allowed per hour for this resource (usually "core").
+        remaining:
+          type: integer
+        used:
+          type: integer
+        resetAt:
+          type: string
+          format: date-time
+
+    GitHubTokenUsage:
+      type: object
+      required: [tokenMasked, repos]
+      properties:
+        tokenMasked:
+          type: string
+          description: Last four characters only, e.g. "****1234".
+        repos:
+          type: array
+          items:
+            type: string
+          description: "owner/name identifiers of every repo tracked under this token."
+        status:
+          $ref: "#/components/schemas/RateLimitStatus"
+
+    WebAuthnCreationOptions:
+      type: object
+      description: A WebAuthn PublicKeyCredentialCreationOptions (opaque to the client beyond browser API use).
+    WebAuthnRequestOptions:
+      type: object
+      description: A WebAuthn PublicKeyCredentialRequestOptions (opaque to the client beyond browser API use).
+    WebAuthnAttestationResponse:
+      type: object
+      description: The browser's AuthenticatorAttestationResponse, JSON-encoded.
+    WebAuthnAssertionResponse:
+      type: object
+      description: The browser's AuthenticatorAssertionResponse, JSON-encoded.

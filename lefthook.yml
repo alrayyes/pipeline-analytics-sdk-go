@@ -1,0 +1,25 @@
+pre-commit:
+  parallel: false
+  commands:
+    gofmt:
+      glob: "*.go"
+      run: ./scripts/go-docker.sh gofmt -w {staged_files} && git add {staged_files}
+
+commit-msg:
+  commands:
+    commitlint:
+      run: bunx commitlint --edit {1}
+
+pre-push:
+  parallel: false
+  commands:
+    go-mod-tidy:
+      run: ./scripts/go-docker.sh sh -c "go mod tidy -diff"
+    go-vet:
+      run: ./scripts/go-docker.sh go vet ./...
+    go-test:
+      run: ./scripts/go-docker.sh go test -race ./...
+    golangci-lint:
+      run: ./scripts/golangci-lint-docker.sh run ./...
+    govulncheck:
+      run: ./scripts/go-docker.sh sh -c "go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./..."

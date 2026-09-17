@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: go vet
+        run: ./scripts/go-docker.sh go vet ./...
+      - name: go mod tidy -diff
+        run: ./scripts/go-docker.sh sh -c "go mod tidy -diff"
+      - name: go test
+        run: >-
+          ./scripts/go-docker.sh sh -c
+          "go run gotest.tools/gotestsum@v1.13.0 --junitfile junit.xml --
+          -race -coverprofile=coverage.out ./..."
+      - name: Upload coverage to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.out
+          fail_ci_if_error: true
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          report_type: test_results
+          files: junit.xml
+          fail_ci_if_error: true
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: gofmt
+        run: >-
+          ./scripts/go-docker.sh sh -c
+          "test -z \"$(gofmt -l .)\" || (gofmt -l . && exit 1)"
+      - name: golangci-lint
+        run: ./scripts/golangci-lint-docker.sh run ./...
+
+  govulncheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: govulncheck
+        run: >-
+          ./scripts/go-docker.sh sh -c
+          "go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./..."
+
+  generated-code-is-fresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Regenerating from the pinned spec reproduces the committed client
+        run: |
+          ./hack/fetch-spec.sh
+          ./scripts/go-docker.sh sh -c \
+            "go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.8.0 \
+             -generate types,client -package genclient \
+             -o internal/genclient/client.gen.go openapi/openapi.yaml"
+          git diff --exit-code openapi/openapi.yaml internal/genclient/client.gen.go
