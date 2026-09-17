@@ -4,11 +4,33 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    commit-message:
+      prefix: fix
+    groups:
+      go-minor-patch:
+        update-types: [minor, patch]
+      go-major:
+        update-types: [major]
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
+    commit-message:
+      # commitlint tooling only -- nothing here ships in the Go module.
+      prefix: chore
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+      npm-major:
+        update-types: [major]
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    commit-message:
+      prefix: ci
+    groups:
+      actions-minor-patch:
+        update-types: [minor, patch]
+      actions-major:
+        update-types: [major]
