@@ -7,6 +7,10 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 LINT_IMAGE="golangci/golangci-lint:v2.13.2"
 
+# See scripts/go-docker.sh for why these are pre-created rather than left
+# for Docker to auto-create (root-owned) on a fresh machine.
+mkdir -p "${HOME}/.cache/go-build-docker" "${HOME}/.cache/golangci-lint-docker"
+
 docker run --rm --user "$(id -u):$(id -g)" \
   -v "$(pwd):/src" -w /src \
   -e HOME=/tmp \

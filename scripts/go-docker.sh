@@ -7,6 +7,13 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 GO_IMAGE="golang:1.27.1-bookworm"
 
+# Pre-create the cache dirs as the invoking user. Docker auto-creates a
+# missing bind-mount source itself (as root, via the daemon) the first
+# time a fresh machine -- a CI runner, say -- hits this script, and a
+# root-owned mount is one --user can't write into: "mkdir: permission
+# denied" on the very first cold run, every time.
+mkdir -p "${HOME}/.cache/go-build-docker" "${HOME}/.cache/go-mod-docker"
+
 docker run --rm --user "$(id -u):$(id -g)" \
   -v "$(pwd):/src" -w /src \
   -e HOME=/tmp \
