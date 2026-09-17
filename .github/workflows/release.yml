@@ -12,6 +12,13 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
+      # A GITHUB_TOKEN-authored PR needs a human approval GitHub itself
+      # injects (rules/releases.md's "RELEASE_TOKEN PAT is not automatically
+      # droppable"), and even with that approved, its squash-merge commit is
+      # GITHUB_TOKEN-authored too -- no workflow fires on it, so this job
+      # never re-runs to cut the actual tag. RELEASE_TOKEN (a real-identity
+      # PAT) sidesteps both. See release-auto-merge.yml for the other half.
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
           release-type: go
+          token: ${{ secrets.RELEASE_TOKEN }}
