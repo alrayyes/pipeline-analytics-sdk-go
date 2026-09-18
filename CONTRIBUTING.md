@@ -44,6 +44,10 @@ moved. To do it by hand:
 Diff `openapi/openapi.yaml` (not the generated Go) to decide whether a
 change needs a major, minor or patch bump — see the "Versioning tracks the
 contract, not the commits" note this repo's `CLAUDE.md` links to.
+`.github/workflows/regenerate.yml` already does this automatically with
+`oasdiff`, picking `feat`/`fix` and adding a `BREAKING CHANGE:` footer as
+needed; a manual regeneration should classify the diff the same way before
+writing the commit message by hand.
 
 ## Commits and releases
 
