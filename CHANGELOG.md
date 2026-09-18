@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/alrayyes/pipeline-analytics-sdk-go/compare/v1.0.1...v1.0.2) (2026-09-18)
+
+
+### Bug Fixes
+
+* bump github.com/stretchr/testify from 1.11.1 to 1.12.1 ([#1](https://github.com/alrayyes/pipeline-analytics-sdk-go/issues/1)) ([0b3a7cb](https://github.com/alrayyes/pipeline-analytics-sdk-go/commit/0b3a7cba7fa8df987f95ae8739b72b7731f12066))
+
 ## [1.0.1](https://github.com/alrayyes/pipeline-analytics-sdk-go/compare/v1.0.0...v1.0.1) (2026-09-17)
 
 
