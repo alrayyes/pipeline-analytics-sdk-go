@@ -1,2 +1,8 @@
 * text=auto eol=lf
+*.{cmd,bat,ps1} text eol=crlf
+*.png binary
+*.jpg binary
+*.ico binary
 internal/genclient/*.gen.go linguist-generated=true
+go.sum -diff linguist-generated=true
+bun.lock -diff
