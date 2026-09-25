@@ -28,8 +28,8 @@ jobs:
         run: >-
           ./scripts/go-docker.sh sh -c
           "go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.8.0
-           -generate types,client -package genclient
-           -o internal/genclient/client.gen.go openapi/openapi.yaml"
+          -generate types,client -package genclient
+          -o internal/genclient/client.gen.go openapi/openapi.yaml"
       - name: Install oasdiff
         run: |
           curl -fsSL -o /tmp/oasdiff.tar.gz \
