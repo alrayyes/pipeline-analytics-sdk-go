@@ -1,8 +1,8 @@
 name: Regenerate from spec
 
 on:
-  schedule:
-    - cron: "0 6 * * 1" # weekly, Monday 06:00 UTC
+  repository_dispatch:
+    types: [pipeline-analytics-spec-updated]
   workflow_dispatch: {}
 
 permissions:
