@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.3](https://github.com/alrayyes/pipeline-analytics-sdk-go/compare/v1.0.2...v1.0.3) (2026-09-26)
+
+
+### Bug Fixes
+
+* **ci:** fix YAML fold break in regenerate workflow's codegen command ([#17](https://github.com/alrayyes/pipeline-analytics-sdk-go/issues/17)) ([f246a8c](https://github.com/alrayyes/pipeline-analytics-sdk-go/commit/f246a8c3959d51283c07f6ca15ac98085dd76af0))
+* **deps:** use bun ecosystem for dependabot, not npm ([2015f7c](https://github.com/alrayyes/pipeline-analytics-sdk-go/commit/2015f7c2672f4cdfc9ca548a837461c72a89c9c2))
+* **deps:** use bun ecosystem for dependabot, not npm ([3b2fccc](https://github.com/alrayyes/pipeline-analytics-sdk-go/commit/3b2fccc8a3745f5887d4f8b3c81c914b3507501a)), closes [#18](https://github.com/alrayyes/pipeline-analytics-sdk-go/issues/18)
+
 ## [1.0.2](https://github.com/alrayyes/pipeline-analytics-sdk-go/compare/v1.0.1...v1.0.2) (2026-09-18)
 
 
