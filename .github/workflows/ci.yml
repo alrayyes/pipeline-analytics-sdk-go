@@ -60,6 +60,41 @@ jobs:
           files: junit.xml
           fail_ci_if_error: true
 
+  # Contract-test the client against a mock server built from the same
+  # pinned spec, per rules/sdk-generation.md's "testing against the spec,
+  # not a hand-written stub". Runs go test directly (actions/setup-go)
+  # rather than through scripts/go-docker.sh: that script's container has
+  # no route to Prism's container on "localhost", where a bare runner
+  # process reaches a docker run -p-published port directly -- same
+  # approach hush-hush-go's own contract job already uses.
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Start Prism mock from the pinned spec
+        run: |
+          docker run -d --name prism -p 4010:4010 \
+            -v "$(pwd)/openapi/openapi.yaml:/spec/openapi.yaml:ro" \
+            stoplight/prism:5 mock -h 0.0.0.0 -m false /spec/openapi.yaml
+          # -m false: Prism's default multiprocess (Node cluster) mode
+          # crashes on startup in this image -- confirmed on hush-hush-go,
+          # same fix applies here.
+          for _ in $(seq 1 30); do
+            curl -sf http://localhost:4010 >/dev/null 2>&1 && break
+            sleep 1
+          done
+      - name: Run contract tests against the mock
+        run: go test -tags=contract ./contract/...
+        env:
+          PIPELINE_ANALYTICS_BASE_URL: http://localhost:4010
+      - name: Prism logs
+        if: failure()
+        run: docker logs prism
+
   lint:
     runs-on: ubuntu-latest
     steps:
