@@ -63,3 +63,18 @@ merging that pull request tags the release. There's no separate build step
 
 Every change lands through a pull request; nothing is pushed straight to
 `main`.
+
+## Contract tests
+
+`contract/contract_test.go` runs against a Prism mock of the pinned spec
+(`go test -tags=contract ./contract/...` with `PIPELINE_ANALYTICS_BASE_URL`
+pointing at it, as the `contract` CI job does). It finds operations by
+reflection over the generated client and calls each with generated
+arguments, so a regeneration that adds query parameters or a whole
+operation needs no edit there.
+
+The one thing it can't generate is a request body. An operation that takes
+one is listed in `bodyOperations` with the reason it has no test yet, and
+a new body operation that isn't listed fails
+`TestContract_EveryOperationIsAccountedFor`, naming it. Fix that by writing
+a test with a valid body and keeping the entry out of the map.
