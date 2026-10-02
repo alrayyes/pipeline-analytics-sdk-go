@@ -1012,6 +1012,7 @@ components:
           pipelinesHealthFilter,
           pipelinesRepoSelector,
           pipelinesSortOrder,
+          telemetryWindow,
         ]
       properties:
         theme:
@@ -1032,6 +1033,10 @@ components:
         pipelinesSortOrder:
           type: string
           enum: [name, lastRun]
+        telemetryWindow:
+          type: string
+          enum: ["24h", "7d", "30d"]
+          description: The trailing span the failure overview, root-cause and flaky views cover. Defaults to 7d.
 
     SettingsUpdate:
       type: object
@@ -1054,6 +1059,9 @@ components:
         pipelinesSortOrder:
           type: [string, "null"]
           enum: [name, lastRun, null]
+        telemetryWindow:
+          type: [string, "null"]
+          enum: ["24h", "7d", "30d", null]
 
     ApiToken:
       type: object
