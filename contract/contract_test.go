@@ -45,7 +45,7 @@ func TestContract_GetVersion(t *testing.T) {
 
 func TestContract_ListPipelines(t *testing.T) {
 	client := mustClient(t)
-	resp, err := client.ListPipelinesWithResponse(context.Background())
+	resp, err := client.ListPipelinesWithResponse(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("ListPipelinesWithResponse: %v", err)
 	}
