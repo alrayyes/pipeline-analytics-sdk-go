@@ -1477,12 +1477,28 @@ components:
 
     StageFailureCount:
       type: object
-      required: [step, failures]
+      required: [step, failures, share]
       properties:
         step:
           type: string
         failures:
           type: integer
+        share:
+          type: number
+          description: Fraction in (0, 1] of all failed-step occurrences in the window; the entries' shares sum to 1.
+
+    CategoryCount:
+      type: object
+      required: [category, occurrences, share]
+      properties:
+        category:
+          $ref: "#/components/schemas/FailureCategory"
+        occurrences:
+          type: integer
+          description: Failed-step occurrences whose step falls in this category.
+        share:
+          type: number
+          description: Fraction in (0, 1] of all failed-step occurrences in the window; the categories' shares sum to 1.
 
     FailingPipeline:
       type: object
@@ -1532,6 +1548,7 @@ components:
           failedRuns,
           flakyStepRatio,
           stageDistribution,
+          categoryBreakdown,
           topFailingPipelines,
           failureGroups,
         ]
@@ -1557,6 +1574,11 @@ components:
           description: Failures by failing step name, highest first.
           items:
             $ref: "#/components/schemas/StageFailureCount"
+        categoryBreakdown:
+          type: array
+          description: Failed-step occurrences by failure category, heaviest first. Empty when nothing failed.
+          items:
+            $ref: "#/components/schemas/CategoryCount"
         topFailingPipelines:
           type: array
           description: Pipelines ordered by failed runs, highest first.

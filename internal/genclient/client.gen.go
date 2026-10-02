@@ -464,6 +464,17 @@ type ApiToken struct {
 	Token string `json:"token"`
 }
 
+// CategoryCount defines model for CategoryCount.
+type CategoryCount struct {
+	Category FailureCategory `json:"category"`
+
+	// Occurrences Failed-step occurrences whose step falls in this category.
+	Occurrences int `json:"occurrences"`
+
+	// Share Fraction in (0, 1] of all failed-step occurrences in the window; the categories' shares sum to 1.
+	Share float32 `json:"share"`
+}
+
 // Credential defines model for Credential.
 type Credential struct {
 	CreatedAt time.Time `json:"createdAt"`
@@ -511,7 +522,9 @@ type FailureGroup struct {
 
 // FailureInsights defines model for FailureInsights.
 type FailureInsights struct {
-	FailedRuns int `json:"failedRuns"`
+	// CategoryBreakdown Failed-step occurrences by failure category, heaviest first. Empty when nothing failed.
+	CategoryBreakdown []CategoryCount `json:"categoryBreakdown"`
+	FailedRuns        int             `json:"failedRuns"`
 
 	// FailureGroups Failed steps grouped by name, highest occurrence count first.
 	FailureGroups []FailureGroup `json:"failureGroups"`
@@ -783,8 +796,11 @@ type SettingsUpdateTheme string
 
 // StageFailureCount defines model for StageFailureCount.
 type StageFailureCount struct {
-	Failures int    `json:"failures"`
-	Step     string `json:"step"`
+	Failures int `json:"failures"`
+
+	// Share Fraction in (0, 1] of all failed-step occurrences in the window; the entries' shares sum to 1.
+	Share float32 `json:"share"`
+	Step  string  `json:"step"`
 }
 
 // Step defines model for Step.
