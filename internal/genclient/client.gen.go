@@ -1399,6 +1399,20 @@ type ClientInterface interface {
 	// Corresponds with GET /api/version (the `GetVersion` operationId).
 	GetVersion(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetHealthz Liveness -- the process is up and answering HTTP
+	//
+	// Public and unauthenticated, and deliberately checks nothing else: it stays 200 while the database is down, so a liveness probe never restarts a process over a dependency it can't fix. Use `/readyz` to learn whether the instance can actually serve.
+	//
+	// Corresponds with GET /healthz (the `GetHealthz` operationId).
+	GetHealthz(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetReadyz Readiness -- the instance can serve, its database answers
+	//
+	// Public and unauthenticated, for the container's `HEALTHCHECK` and any orchestrator. Reads the database schema within a short deadline. A failure returns 503 with a generic body: the cause goes to the server log, not to an unauthenticated caller.
+	//
+	// Corresponds with GET /readyz (the `GetReadyz` operationId).
+	GetReadyz(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ForgejoWebhookWithBody Forgejo Actions webhook receiver
 	//
 	// Takes any type of body and a specified content type.
@@ -2047,6 +2061,40 @@ func (c *Client) ListUnhealthySteps(ctx context.Context, params *ListUnhealthySt
 // Corresponds with GET /api/version (the `GetVersion` operationId).
 func (c *Client) GetVersion(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetVersionRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetHealthz Liveness -- the process is up and answering HTTP
+//
+// Public and unauthenticated, and deliberately checks nothing else: it stays 200 while the database is down, so a liveness probe never restarts a process over a dependency it can't fix. Use `/readyz` to learn whether the instance can actually serve.
+//
+// Corresponds with GET /healthz (the `GetHealthz` operationId).
+func (c *Client) GetHealthz(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetHealthzRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetReadyz Readiness -- the instance can serve, its database answers
+//
+// Public and unauthenticated, for the container's `HEALTHCHECK` and any orchestrator. Reads the database schema within a short deadline. A failure returns 503 with a generic body: the cause goes to the server log, not to an unauthenticated caller.
+//
+// Corresponds with GET /readyz (the `GetReadyz` operationId).
+func (c *Client) GetReadyz(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetReadyzRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -3563,6 +3611,60 @@ func NewGetVersionRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewGetHealthzRequest constructs an http.Request for the GetHealthz method
+func NewGetHealthzRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/healthz")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetReadyzRequest constructs an http.Request for the GetReadyz method
+func NewGetReadyzRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/readyz")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewForgejoWebhookRequest calls the generic ForgejoWebhook builder with application/json body
 func NewForgejoWebhookRequest(server string, params *ForgejoWebhookParams, body ForgejoWebhookJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -4035,6 +4137,24 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/version (the `GetVersion` operationId).
 	GetVersionWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetVersionResponse, error)
+
+	// GetHealthzWithResponse Liveness -- the process is up and answering HTTP
+	//
+	// Public and unauthenticated, and deliberately checks nothing else: it stays 200 while the database is down, so a liveness probe never restarts a process over a dependency it can't fix. Use `/readyz` to learn whether the instance can actually serve.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /healthz (the `GetHealthz` operationId).
+	GetHealthzWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHealthzResponse, error)
+
+	// GetReadyzWithResponse Readiness -- the instance can serve, its database answers
+	//
+	// Public and unauthenticated, for the container's `HEALTHCHECK` and any orchestrator. Reads the database schema within a short deadline. A failure returns 503 with a generic body: the cause goes to the server log, not to an unauthenticated caller.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /readyz (the `GetReadyz` operationId).
+	GetReadyzWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetReadyzResponse, error)
 
 	// ForgejoWebhookWithBodyWithResponse Forgejo Actions webhook receiver
 	//
@@ -5621,6 +5741,81 @@ func (r GetVersionResponse) ContentType() string {
 	return ""
 }
 
+type GetHealthzResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// GetBody returns the raw response body bytes
+func (r GetHealthzResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetHealthzResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetHealthzResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetHealthzResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetReadyzResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON503 the response for an HTTP 503 `application/json` response
+	JSON503 *Error
+}
+
+// GetJSON503 returns the response for an HTTP 503 `application/json` response
+func (r GetReadyzResponse) GetJSON503() *Error {
+	return r.JSON503
+}
+
+// GetBody returns the raw response body bytes
+func (r GetReadyzResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetReadyzResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetReadyzResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetReadyzResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type ForgejoWebhookResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -6228,6 +6423,36 @@ func (c *ClientWithResponses) GetVersionWithResponse(ctx context.Context, reqEdi
 		return nil, err
 	}
 	return ParseGetVersionResponse(rsp)
+}
+
+// GetHealthzWithResponse Liveness -- the process is up and answering HTTP
+//
+// Public and unauthenticated, and deliberately checks nothing else: it stays 200 while the database is down, so a liveness probe never restarts a process over a dependency it can't fix. Use `/readyz` to learn whether the instance can actually serve.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /healthz (the `GetHealthz` operationId).
+func (c *ClientWithResponses) GetHealthzWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetHealthzResponse, error) {
+	rsp, err := c.GetHealthz(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetHealthzResponse(rsp)
+}
+
+// GetReadyzWithResponse Readiness -- the instance can serve, its database answers
+//
+// Public and unauthenticated, for the container's `HEALTHCHECK` and any orchestrator. Reads the database schema within a short deadline. A failure returns 503 with a generic body: the cause goes to the server log, not to an unauthenticated caller.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /readyz (the `GetReadyz` operationId).
+func (c *ClientWithResponses) GetReadyzWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetReadyzResponse, error) {
+	rsp, err := c.GetReadyz(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetReadyzResponse(rsp)
 }
 
 // ForgejoWebhookWithBodyWithResponse Forgejo Actions webhook receiver
@@ -7434,6 +7659,48 @@ func ParseGetVersionResponse(rsp *http.Response) (*GetVersionResponse, error) {
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetHealthzResponse parses an HTTP response from a GetHealthzWithResponse call
+func ParseGetHealthzResponse(rsp *http.Response) (*GetHealthzResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetHealthzResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetReadyzResponse parses an HTTP response from a GetReadyzWithResponse call
+func ParseGetReadyzResponse(rsp *http.Response) (*GetReadyzResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetReadyzResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
 
 	}
 

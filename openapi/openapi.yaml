@@ -19,6 +19,52 @@ security:
   - apiKey: []
 
 paths:
+  /healthz:
+    get:
+      operationId: getHealthz
+      summary: Liveness -- the process is up and answering HTTP
+      description: >
+        Public and unauthenticated, and deliberately checks nothing else: it
+        stays 200 while the database is down, so a liveness probe never
+        restarts a process over a dependency it can't fix. Use `/readyz` to
+        learn whether the instance can actually serve.
+      tags: [meta]
+      security: []
+      responses:
+        "200":
+          description: The process is alive
+          content:
+            text/plain:
+              schema:
+                type: string
+                examples: [ok]
+
+  /readyz:
+    get:
+      operationId: getReadyz
+      summary: Readiness -- the instance can serve, its database answers
+      description: >
+        Public and unauthenticated, for the container's `HEALTHCHECK` and
+        any orchestrator. Reads the database schema within a short deadline. A
+        failure returns 503 with a generic body: the cause goes to the
+        server log, not to an unauthenticated caller.
+      tags: [meta]
+      security: []
+      responses:
+        "200":
+          description: The database answered
+          content:
+            text/plain:
+              schema:
+                type: string
+                examples: [ok]
+        "503":
+          description: The database did not answer in time, or errored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /api/version:
     get:
       operationId: getVersion
