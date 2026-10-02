@@ -553,6 +553,9 @@ type Credential struct {
 
 	// Label A caller-supplied name (e.g. "MacBook", "iPhone"), set once at enrollment. Empty for a credential added before this existed, or for the account's original anonymous-registration credential.
 	Label string `json:"label"`
+
+	// Revocable False only for the account's last remaining credential, which DELETE /api/auth/credentials/{credentialId} refuses to revoke (409). A hint for clients so they don't apply the rule themselves; the server still enforces it.
+	Revocable bool `json:"revocable"`
 }
 
 // Error defines model for Error.
