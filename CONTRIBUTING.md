@@ -73,7 +73,9 @@ reflection over the generated client and calls each with generated
 arguments, so a regeneration that adds query parameters or a whole
 operation needs no edit there.
 
-The one thing it can't generate is a request body. An operation that takes
+Two things it can't generate. A required enum query parameter needs its
+type listed in `enumSamples`, or that operation fails with a 4xx naming it.
+The other is a request body. An operation that takes
 one is listed in `bodyOperations` with the reason it has no test yet, and
 a new body operation that isn't listed fails
 `TestContract_EveryOperationIsAccountedFor`, naming it. Fix that by writing

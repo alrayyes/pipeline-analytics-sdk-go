@@ -45,6 +45,14 @@ var bodyOperations = map[string]string{
 	"WebauthnRegister": "needs a valid attestation body",
 }
 
+// enumSamples gives a valid value for each required enum parameter type, by
+// Go type name: reflection can't list a string type's allowed values, and
+// "sample" fails the mock's enum validation. A new required enum shows up as
+// one operation failing with a 4xx, naming it; add its type here.
+var enumSamples = map[string]string{
+	"Forge": "github",
+}
+
 func mustClient(t *testing.T) *pipelineanalytics.Client {
 	t.Helper()
 	baseURL := os.Getenv("PIPELINE_ANALYTICS_BASE_URL")
@@ -110,7 +118,11 @@ func sampleValue(t *testing.T, op string, typ reflect.Type) reflect.Value {
 	switch typ.Kind() {
 	case reflect.String:
 		value := reflect.New(typ).Elem()
-		value.SetString("sample")
+		if sample, ok := enumSamples[typ.Name()]; ok {
+			value.SetString(sample)
+		} else {
+			value.SetString("sample")
+		}
 
 		return value
 	case reflect.Int, reflect.Int32, reflect.Int64:
