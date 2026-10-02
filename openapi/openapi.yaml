@@ -1158,7 +1158,7 @@ components:
 
     Credential:
       type: object
-      required: [id, label, createdAt]
+      required: [id, label, createdAt, revocable]
       properties:
         id:
           type: string
@@ -1175,6 +1175,13 @@ components:
         createdAt:
           type: string
           format: date-time
+        revocable:
+          type: boolean
+          description: >
+            False only for the account's last remaining credential, which
+            DELETE /api/auth/credentials/{credentialId} refuses to revoke
+            (409). A hint for clients so they don't apply the rule themselves;
+            the server still enforces it.
 
     Forge:
       type: string
