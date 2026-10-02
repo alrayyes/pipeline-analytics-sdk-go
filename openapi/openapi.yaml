@@ -1377,9 +1377,20 @@ components:
           format: uri
           description: Deep link to the job this step failed in, on this specific run.
 
+    Outcome:
+      type: string
+      enum: [passed, failed, running, queued, cancelled, skipped, unknown]
+      description: >
+        What a run's or step's forge state means, computed by the server so no
+        client interprets status strings. `failed` covers a `failure` or
+        `timed_out` conclusion; a conclusion wins over a stale status;
+        `running` and `queued` are work still pending (the run list's
+        `running` filter covers both); a state the server doesn't recognise is
+        `unknown`, never `passed`.
+
     RunStep:
       type: object
-      required: [name, status]
+      required: [name, status, outcome]
       properties:
         name:
           type: string
@@ -1387,6 +1398,8 @@ components:
           type: string
         conclusion:
           type: string
+        outcome:
+          $ref: "#/components/schemas/Outcome"
         forgeUrl:
           type: string
           format: uri
@@ -1408,7 +1421,7 @@ components:
 
     RunSummary:
       type: object
-      required: [id, pipelineId, pipelineName, repoId, status, steps]
+      required: [id, pipelineId, pipelineName, repoId, status, outcome, steps]
       properties:
         id:
           type: string
@@ -1424,6 +1437,8 @@ components:
         conclusion:
           type: string
           description: Absent until the run concludes.
+        outcome:
+          $ref: "#/components/schemas/Outcome"
         startedAt:
           type: string
           format: date-time
