@@ -101,6 +101,39 @@ func (e IngestionStatus) Valid() bool {
 	}
 }
 
+// Defines values for Outcome.
+const (
+	OutcomeCancelled Outcome = "cancelled"
+	OutcomeFailed    Outcome = "failed"
+	OutcomePassed    Outcome = "passed"
+	OutcomeQueued    Outcome = "queued"
+	OutcomeRunning   Outcome = "running"
+	OutcomeSkipped   Outcome = "skipped"
+	OutcomeUnknown   Outcome = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the Outcome enum.
+func (e Outcome) Valid() bool {
+	switch e {
+	case OutcomeCancelled:
+		return true
+	case OutcomeFailed:
+		return true
+	case OutcomePassed:
+		return true
+	case OutcomeQueued:
+		return true
+	case OutcomeRunning:
+		return true
+	case OutcomeSkipped:
+		return true
+	case OutcomeUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PipelineDetailTriggeredSignals.
 const (
 	PipelineDetailTriggeredSignalsDurationRegression PipelineDetailTriggeredSignals = "duration_regression"
@@ -576,6 +609,9 @@ type HealthStatus string
 // IngestionStatus defines model for IngestionStatus.
 type IngestionStatus string
 
+// Outcome What a run's or step's forge state means, computed by the server so no client interprets status strings. `failed` covers a `failure` or `timed_out` conclusion; a conclusion wins over a stale status; `running` and `queued` are work still pending (the run list's `running` filter covers both); a state the server doesn't recognise is `unknown`, never `passed`.
+type Outcome string
+
 // PipelineDetail defines model for PipelineDetail.
 type PipelineDetail struct {
 	DurationTrend    *Trend       `json:"durationTrend,omitempty"`
@@ -702,7 +738,10 @@ type RunStep struct {
 	// ForgeUrl Deep link to this exact occurrence's job on the originating forge.
 	ForgeUrl *string `json:"forgeUrl,omitempty"`
 	Name     string  `json:"name"`
-	Status   string  `json:"status"`
+
+	// Outcome What a run's or step's forge state means, computed by the server so no client interprets status strings. `failed` covers a `failure` or `timed_out` conclusion; a conclusion wins over a stale status; `running` and `queued` are work still pending (the run list's `running` filter covers both); a state the server doesn't recognise is `unknown`, never `passed`.
+	Outcome Outcome `json:"outcome"`
+	Status  string  `json:"status"`
 }
 
 // RunSummary defines model for RunSummary.
@@ -724,7 +763,10 @@ type RunSummary struct {
 	Id       string  `json:"id"`
 
 	// Message First line of the head commit message.
-	Message      *string `json:"message,omitempty"`
+	Message *string `json:"message,omitempty"`
+
+	// Outcome What a run's or step's forge state means, computed by the server so no client interprets status strings. `failed` covers a `failure` or `timed_out` conclusion; a conclusion wins over a stale status; `running` and `queued` are work still pending (the run list's `running` filter covers both); a state the server doesn't recognise is `unknown`, never `passed`.
+	Outcome      Outcome `json:"outcome"`
 	PipelineId   string  `json:"pipelineId"`
 	PipelineName string  `json:"pipelineName"`
 	RepoId       string  `json:"repoId"`
