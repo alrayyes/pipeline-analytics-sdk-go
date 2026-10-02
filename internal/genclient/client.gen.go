@@ -317,6 +317,27 @@ func (e SettingsUpdateTheme) Valid() bool {
 	}
 }
 
+// Defines values for InsightsWindow.
+const (
+	InsightsWindowN24h InsightsWindow = "24h"
+	InsightsWindowN30d InsightsWindow = "30d"
+	InsightsWindowN7d  InsightsWindow = "7d"
+)
+
+// Valid indicates whether the value is a known member of the InsightsWindow enum.
+func (e InsightsWindow) Valid() bool {
+	switch e {
+	case InsightsWindowN24h:
+		return true
+	case InsightsWindowN30d:
+		return true
+	case InsightsWindowN7d:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RunStatusFilter.
 const (
 	RunStatusFilterAll     RunStatusFilter = "all"
@@ -335,6 +356,27 @@ func (e RunStatusFilter) Valid() bool {
 	case RunStatusFilterRunning:
 		return true
 	case RunStatusFilterSuccess:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetFailureInsightsParamsWindow.
+const (
+	GetFailureInsightsParamsWindowN24h GetFailureInsightsParamsWindow = "24h"
+	GetFailureInsightsParamsWindowN30d GetFailureInsightsParamsWindow = "30d"
+	GetFailureInsightsParamsWindowN7d  GetFailureInsightsParamsWindow = "7d"
+)
+
+// Valid indicates whether the value is a known member of the GetFailureInsightsParamsWindow enum.
+func (e GetFailureInsightsParamsWindow) Valid() bool {
+	switch e {
+	case GetFailureInsightsParamsWindowN24h:
+		return true
+	case GetFailureInsightsParamsWindowN30d:
+		return true
+	case GetFailureInsightsParamsWindowN7d:
 		return true
 	default:
 		return false
@@ -435,8 +477,8 @@ type FailureInsights struct {
 	// MttrSeconds Mean time from a pipeline's first failed run to its next successful run. Absent when nothing recovered in the window.
 	MttrSeconds *float32 `json:"mttrSeconds,omitempty"`
 
-	// PassRate Fraction in [0, 1] of concluded runs that succeeded.
-	PassRate float32 `json:"passRate"`
+	// PassRate Fraction in [0, 1] of concluded runs that succeeded. Absent when no run concluded in the window, since no data isn't 0%.
+	PassRate *float32 `json:"passRate,omitempty"`
 
 	// PassRateDelta Percentage points versus the preceding window of equal length. Absent when that window had no runs.
 	PassRateDelta *float32 `json:"passRateDelta,omitempty"`
@@ -752,6 +794,9 @@ type WebAuthnCreationOptions = map[string]interface{}
 // WebAuthnRequestOptions A WebAuthn PublicKeyCredentialRequestOptions (opaque to the client beyond browser API use).
 type WebAuthnRequestOptions = map[string]interface{}
 
+// InsightsWindow defines model for InsightsWindow.
+type InsightsWindow string
+
 // Limit defines model for Limit.
 type Limit = int
 
@@ -811,9 +856,12 @@ type GetFailureInsightsParams struct {
 	// Forge Restrict the list to one forge. Omitted returns every forge.
 	Forge *RepoForgeFilter `form:"forge,omitempty" json:"forge,omitempty"`
 
-	// Window Trailing run count or duration the trend/ranking is computed over. Defaults to a server-chosen rolling window.
-	Window *Window `form:"window,omitempty" json:"window,omitempty"`
+	// Window Trailing span of time the failure insights cover: `24h`, `7d` or `30d`. Unlike `Window`, this is never a run count -- a quiet and a busy pipeline would cover very different spans. Anything else falls back to `7d`.
+	Window *GetFailureInsightsParamsWindow `form:"window,omitempty" json:"window,omitempty"`
 }
+
+// GetFailureInsightsParamsWindow defines parameters for GetFailureInsights.
+type GetFailureInsightsParamsWindow string
 
 // McpEndpointJSONBody defines parameters for McpEndpoint.
 type McpEndpointJSONBody = map[string]interface{}

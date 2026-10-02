@@ -416,7 +416,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PipelineRepoIdFilter"
         - $ref: "#/components/parameters/RepoForgeFilter"
-        - $ref: "#/components/parameters/Window"
+        - $ref: "#/components/parameters/InsightsWindow"
       responses:
         "200":
           description: Failure insights for the window
@@ -896,6 +896,19 @@ components:
       description: Trailing run count or duration the trend/ranking is computed over. Defaults to a server-chosen rolling window.
       schema:
         type: string
+    InsightsWindow:
+      name: window
+      in: query
+      required: false
+      description: >
+        Trailing span of time the failure insights cover: `24h`, `7d` or
+        `30d`. Unlike `Window`, this is never a run count -- a quiet and a
+        busy pipeline would cover very different spans. Anything else falls
+        back to `7d`.
+      schema:
+        type: string
+        enum: ["24h", "7d", "30d"]
+        default: "7d"
     RepoForgeFilter:
       name: forge
       in: query
@@ -1463,7 +1476,6 @@ components:
         [
           totalRuns,
           failedRuns,
-          passRate,
           flakyStepRatio,
           stageDistribution,
           topFailingPipelines,
@@ -1476,7 +1488,7 @@ components:
           type: integer
         passRate:
           type: number
-          description: Fraction in [0, 1] of concluded runs that succeeded.
+          description: Fraction in [0, 1] of concluded runs that succeeded. Absent when no run concluded in the window, since no data isn't 0%.
         passRateDelta:
           type: number
           description: Percentage points versus the preceding window of equal length. Absent when that window had no runs.
