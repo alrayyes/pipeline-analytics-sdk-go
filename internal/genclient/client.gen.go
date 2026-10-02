@@ -17,18 +17,45 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Defines values for FailureCategory.
+const (
+	CodeTests       FailureCategory = "code_tests"
+	ConfigSecrets   FailureCategory = "config_secrets"
+	Infrastructure  FailureCategory = "infrastructure"
+	NetworkTimeouts FailureCategory = "network_timeouts"
+	Uncategorised   FailureCategory = "uncategorised"
+)
+
+// Valid indicates whether the value is a known member of the FailureCategory enum.
+func (e FailureCategory) Valid() bool {
+	switch e {
+	case CodeTests:
+		return true
+	case ConfigSecrets:
+		return true
+	case Infrastructure:
+		return true
+	case NetworkTimeouts:
+		return true
+	case Uncategorised:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Forge.
 const (
-	Forgejo Forge = "forgejo"
-	Github  Forge = "github"
+	ForgeForgejo Forge = "forgejo"
+	ForgeGithub  Forge = "github"
 )
 
 // Valid indicates whether the value is a known member of the Forge enum.
 func (e Forge) Valid() bool {
 	switch e {
-	case Forgejo:
+	case ForgeForgejo:
 		return true
-	case Github:
+	case ForgeGithub:
 		return true
 	default:
 		return false
@@ -37,16 +64,16 @@ func (e Forge) Valid() bool {
 
 // Defines values for HealthStatus.
 const (
-	Healthy   HealthStatus = "healthy"
-	Unhealthy HealthStatus = "unhealthy"
+	HealthStatusHealthy   HealthStatus = "healthy"
+	HealthStatusUnhealthy HealthStatus = "unhealthy"
 )
 
 // Valid indicates whether the value is a known member of the HealthStatus enum.
 func (e HealthStatus) Valid() bool {
 	switch e {
-	case Healthy:
+	case HealthStatusHealthy:
 		return true
-	case Unhealthy:
+	case HealthStatusUnhealthy:
 		return true
 	default:
 		return false
@@ -116,10 +143,318 @@ func (e PipelineSummaryTriggeredSignals) Valid() bool {
 	}
 }
 
+// Defines values for SettingsForgeFilter.
+const (
+	SettingsForgeFilterAll     SettingsForgeFilter = "all"
+	SettingsForgeFilterForgejo SettingsForgeFilter = "forgejo"
+	SettingsForgeFilterGithub  SettingsForgeFilter = "github"
+)
+
+// Valid indicates whether the value is a known member of the SettingsForgeFilter enum.
+func (e SettingsForgeFilter) Valid() bool {
+	switch e {
+	case SettingsForgeFilterAll:
+		return true
+	case SettingsForgeFilterForgejo:
+		return true
+	case SettingsForgeFilterGithub:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SettingsPipelinesHealthFilter.
+const (
+	SettingsPipelinesHealthFilterAll       SettingsPipelinesHealthFilter = "all"
+	SettingsPipelinesHealthFilterHealthy   SettingsPipelinesHealthFilter = "healthy"
+	SettingsPipelinesHealthFilterUnhealthy SettingsPipelinesHealthFilter = "unhealthy"
+)
+
+// Valid indicates whether the value is a known member of the SettingsPipelinesHealthFilter enum.
+func (e SettingsPipelinesHealthFilter) Valid() bool {
+	switch e {
+	case SettingsPipelinesHealthFilterAll:
+		return true
+	case SettingsPipelinesHealthFilterHealthy:
+		return true
+	case SettingsPipelinesHealthFilterUnhealthy:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SettingsPipelinesSortOrder.
+const (
+	SettingsPipelinesSortOrderLastRun SettingsPipelinesSortOrder = "lastRun"
+	SettingsPipelinesSortOrderName    SettingsPipelinesSortOrder = "name"
+)
+
+// Valid indicates whether the value is a known member of the SettingsPipelinesSortOrder enum.
+func (e SettingsPipelinesSortOrder) Valid() bool {
+	switch e {
+	case SettingsPipelinesSortOrderLastRun:
+		return true
+	case SettingsPipelinesSortOrderName:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SettingsTheme.
+const (
+	SettingsThemeDark   SettingsTheme = "dark"
+	SettingsThemeLight  SettingsTheme = "light"
+	SettingsThemeSystem SettingsTheme = "system"
+)
+
+// Valid indicates whether the value is a known member of the SettingsTheme enum.
+func (e SettingsTheme) Valid() bool {
+	switch e {
+	case SettingsThemeDark:
+		return true
+	case SettingsThemeLight:
+		return true
+	case SettingsThemeSystem:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SettingsUpdateForgeFilter.
+const (
+	SettingsUpdateForgeFilterAll         SettingsUpdateForgeFilter = "all"
+	SettingsUpdateForgeFilterForgejo     SettingsUpdateForgeFilter = "forgejo"
+	SettingsUpdateForgeFilterGithub      SettingsUpdateForgeFilter = "github"
+	SettingsUpdateForgeFilterLessThannil SettingsUpdateForgeFilter = "<nil>"
+)
+
+// Valid indicates whether the value is a known member of the SettingsUpdateForgeFilter enum.
+func (e SettingsUpdateForgeFilter) Valid() bool {
+	switch e {
+	case SettingsUpdateForgeFilterAll:
+		return true
+	case SettingsUpdateForgeFilterForgejo:
+		return true
+	case SettingsUpdateForgeFilterGithub:
+		return true
+	case SettingsUpdateForgeFilterLessThannil:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SettingsUpdatePipelinesHealthFilter.
+const (
+	SettingsUpdatePipelinesHealthFilterAll         SettingsUpdatePipelinesHealthFilter = "all"
+	SettingsUpdatePipelinesHealthFilterHealthy     SettingsUpdatePipelinesHealthFilter = "healthy"
+	SettingsUpdatePipelinesHealthFilterLessThannil SettingsUpdatePipelinesHealthFilter = "<nil>"
+	SettingsUpdatePipelinesHealthFilterUnhealthy   SettingsUpdatePipelinesHealthFilter = "unhealthy"
+)
+
+// Valid indicates whether the value is a known member of the SettingsUpdatePipelinesHealthFilter enum.
+func (e SettingsUpdatePipelinesHealthFilter) Valid() bool {
+	switch e {
+	case SettingsUpdatePipelinesHealthFilterAll:
+		return true
+	case SettingsUpdatePipelinesHealthFilterHealthy:
+		return true
+	case SettingsUpdatePipelinesHealthFilterLessThannil:
+		return true
+	case SettingsUpdatePipelinesHealthFilterUnhealthy:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SettingsUpdatePipelinesSortOrder.
+const (
+	SettingsUpdatePipelinesSortOrderLastRun     SettingsUpdatePipelinesSortOrder = "lastRun"
+	SettingsUpdatePipelinesSortOrderLessThannil SettingsUpdatePipelinesSortOrder = "<nil>"
+	SettingsUpdatePipelinesSortOrderName        SettingsUpdatePipelinesSortOrder = "name"
+)
+
+// Valid indicates whether the value is a known member of the SettingsUpdatePipelinesSortOrder enum.
+func (e SettingsUpdatePipelinesSortOrder) Valid() bool {
+	switch e {
+	case SettingsUpdatePipelinesSortOrderLastRun:
+		return true
+	case SettingsUpdatePipelinesSortOrderLessThannil:
+		return true
+	case SettingsUpdatePipelinesSortOrderName:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SettingsUpdateTheme.
+const (
+	SettingsUpdateThemeDark        SettingsUpdateTheme = "dark"
+	SettingsUpdateThemeLessThannil SettingsUpdateTheme = "<nil>"
+	SettingsUpdateThemeLight       SettingsUpdateTheme = "light"
+	SettingsUpdateThemeSystem      SettingsUpdateTheme = "system"
+)
+
+// Valid indicates whether the value is a known member of the SettingsUpdateTheme enum.
+func (e SettingsUpdateTheme) Valid() bool {
+	switch e {
+	case SettingsUpdateThemeDark:
+		return true
+	case SettingsUpdateThemeLessThannil:
+		return true
+	case SettingsUpdateThemeLight:
+		return true
+	case SettingsUpdateThemeSystem:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunStatusFilter.
+const (
+	RunStatusFilterAll     RunStatusFilter = "all"
+	RunStatusFilterFailed  RunStatusFilter = "failed"
+	RunStatusFilterRunning RunStatusFilter = "running"
+	RunStatusFilterSuccess RunStatusFilter = "success"
+)
+
+// Valid indicates whether the value is a known member of the RunStatusFilter enum.
+func (e RunStatusFilter) Valid() bool {
+	switch e {
+	case RunStatusFilterAll:
+		return true
+	case RunStatusFilterFailed:
+		return true
+	case RunStatusFilterRunning:
+		return true
+	case RunStatusFilterSuccess:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListRunsParamsStatus.
+const (
+	ListRunsParamsStatusAll     ListRunsParamsStatus = "all"
+	ListRunsParamsStatusFailed  ListRunsParamsStatus = "failed"
+	ListRunsParamsStatusRunning ListRunsParamsStatus = "running"
+	ListRunsParamsStatusSuccess ListRunsParamsStatus = "success"
+)
+
+// Valid indicates whether the value is a known member of the ListRunsParamsStatus enum.
+func (e ListRunsParamsStatus) Valid() bool {
+	switch e {
+	case ListRunsParamsStatusAll:
+		return true
+	case ListRunsParamsStatusFailed:
+		return true
+	case ListRunsParamsStatusRunning:
+		return true
+	case ListRunsParamsStatusSuccess:
+		return true
+	default:
+		return false
+	}
+}
+
+// ApiToken defines model for ApiToken.
+type ApiToken struct {
+	CreatedAt time.Time `json:"createdAt"`
+	ExpiresAt time.Time `json:"expiresAt"`
+
+	// Id Identifies the token for revocation (DELETE /api/auth/tokens/{tokenId}) -- not itself a usable credential.
+	Id string `json:"id"`
+
+	// Token The raw token value. Returned only here, at creation; store it now, it can't be retrieved again.
+	Token string `json:"token"`
+}
+
+// Credential defines model for Credential.
+type Credential struct {
+	CreatedAt time.Time `json:"createdAt"`
+
+	// Id The credential's id, base64url-encoded -- identifies it for revocation (DELETE /api/auth/credentials/{credentialId}), not a usable credential itself.
+	Id string `json:"id"`
+
+	// Label A caller-supplied name (e.g. "MacBook", "iPhone"), set once at enrollment. Empty for a credential added before this existed, or for the account's original anonymous-registration credential.
+	Label string `json:"label"`
+}
+
 // Error defines model for Error.
 type Error struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
+}
+
+// FailingPipeline defines model for FailingPipeline.
+type FailingPipeline struct {
+	FailedRuns   int    `json:"failedRuns"`
+	PipelineId   string `json:"pipelineId"`
+	PipelineName string `json:"pipelineName"`
+	RepoId       string `json:"repoId"`
+	Runs         int    `json:"runs"`
+}
+
+// FailureCategory defines model for FailureCategory.
+type FailureCategory string
+
+// FailureGroup defines model for FailureGroup.
+type FailureGroup struct {
+	Category FailureCategory `json:"category"`
+
+	// Conclusion The most common step conclusion in the group, shown so a heuristic category can be checked.
+	Conclusion  *string `json:"conclusion,omitempty"`
+	Occurrences int     `json:"occurrences"`
+
+	// Pipelines Pipelines the step failed in, each reachable via GET .../flaky-runs.
+	Pipelines []struct {
+		PipelineId   string `json:"pipelineId"`
+		PipelineName string `json:"pipelineName"`
+	} `json:"pipelines"`
+	Step string `json:"step"`
+}
+
+// FailureInsights defines model for FailureInsights.
+type FailureInsights struct {
+	FailedRuns int `json:"failedRuns"`
+
+	// FailureGroups Failed steps grouped by name, highest occurrence count first.
+	FailureGroups []FailureGroup `json:"failureGroups"`
+
+	// FlakyStepRatio Fraction in [0, 1] of distinct steps flagged flaky.
+	FlakyStepRatio float32 `json:"flakyStepRatio"`
+
+	// MttrSeconds Mean time from a pipeline's first failed run to its next successful run. Absent when nothing recovered in the window.
+	MttrSeconds *float32 `json:"mttrSeconds,omitempty"`
+
+	// PassRate Fraction in [0, 1] of concluded runs that succeeded.
+	PassRate float32 `json:"passRate"`
+
+	// PassRateDelta Percentage points versus the preceding window of equal length. Absent when that window had no runs.
+	PassRateDelta *float32 `json:"passRateDelta,omitempty"`
+
+	// StageDistribution Failures by failing step name, highest first.
+	StageDistribution []StageFailureCount `json:"stageDistribution"`
+
+	// TopFailingPipelines Pipelines ordered by failed runs, highest first.
+	TopFailingPipelines []FailingPipeline `json:"topFailingPipelines"`
+	TotalRuns           int               `json:"totalRuns"`
+}
+
+// FlakyRun defines model for FlakyRun.
+type FlakyRun struct {
+	// ForgeUrl Deep link to the job this step failed in, on this specific run.
+	ForgeUrl  string     `json:"forgeUrl"`
+	RunId     string     `json:"runId"`
+	StartedAt *time.Time `json:"startedAt,omitempty"`
 }
 
 // Forge defines model for Forge.
@@ -159,6 +494,13 @@ type PipelineDetail struct {
 
 // PipelineDetailTriggeredSignals defines model for PipelineDetail.TriggeredSignals.
 type PipelineDetailTriggeredSignals string
+
+// PipelineList defines model for PipelineList.
+type PipelineList struct {
+	// HasMore True when pipelines beyond this page match the filter. Always false when limit was omitted.
+	HasMore   bool              `json:"hasMore"`
+	Pipelines []PipelineSummary `json:"pipelines"`
+}
 
 // PipelineStepsGroup defines model for PipelineStepsGroup.
 type PipelineStepsGroup struct {
@@ -239,14 +581,126 @@ type RepoRegistration struct {
 	Token string `json:"token"`
 }
 
+// RunDetail defines model for RunDetail.
+type RunDetail struct {
+	RunId     string     `json:"runId"`
+	StartedAt *time.Time `json:"startedAt,omitempty"`
+	Steps     []RunStep  `json:"steps"`
+}
+
+// RunList defines model for RunList.
+type RunList struct {
+	// HasMore True when runs beyond this page match the filter. Always false when limit was omitted.
+	HasMore bool         `json:"hasMore"`
+	Runs    []RunSummary `json:"runs"`
+}
+
+// RunStep defines model for RunStep.
+type RunStep struct {
+	Conclusion *string `json:"conclusion,omitempty"`
+
+	// ForgeUrl Deep link to this exact occurrence's job on the originating forge.
+	ForgeUrl *string `json:"forgeUrl,omitempty"`
+	Name     string  `json:"name"`
+	Status   string  `json:"status"`
+}
+
+// RunSummary defines model for RunSummary.
+type RunSummary struct {
+	// Actor The triggering user or bot.
+	Actor *string `json:"actor,omitempty"`
+
+	// Branch Absent on runs ingested before commit metadata was recorded.
+	Branch *string `json:"branch,omitempty"`
+
+	// Conclusion Absent until the run concludes.
+	Conclusion *string `json:"conclusion,omitempty"`
+
+	// DurationSeconds Absent while the run is still going or has no recorded end.
+	DurationSeconds *float32 `json:"durationSeconds,omitempty"`
+
+	// ForgeUrl Deep link to the run on the originating forge.
+	ForgeUrl *string `json:"forgeUrl,omitempty"`
+	Id       string  `json:"id"`
+
+	// Message First line of the head commit message.
+	Message      *string `json:"message,omitempty"`
+	PipelineId   string  `json:"pipelineId"`
+	PipelineName string  `json:"pipelineName"`
+	RepoId       string  `json:"repoId"`
+
+	// Sha Head commit SHA. Absent where the forge or an older row lacks it.
+	Sha       *string    `json:"sha,omitempty"`
+	StartedAt *time.Time `json:"startedAt,omitempty"`
+
+	// Status The forge's run status, as recorded.
+	Status string `json:"status"`
+
+	// Steps The run's steps in recorded order.
+	Steps []RunStep `json:"steps"`
+}
+
+// Settings defines model for Settings.
+type Settings struct {
+	ForgeFilter           SettingsForgeFilter           `json:"forgeFilter"`
+	PipelinesHealthFilter SettingsPipelinesHealthFilter `json:"pipelinesHealthFilter"`
+
+	// PipelinesRepoSelector A tracked repo's id, or "all" for every repo -- not validated against an enum, since the set of valid values changes with what's currently tracked.
+	PipelinesRepoSelector string                     `json:"pipelinesRepoSelector"`
+	PipelinesSortOrder    SettingsPipelinesSortOrder `json:"pipelinesSortOrder"`
+	Theme                 SettingsTheme              `json:"theme"`
+}
+
+// SettingsForgeFilter defines model for Settings.ForgeFilter.
+type SettingsForgeFilter string
+
+// SettingsPipelinesHealthFilter defines model for Settings.PipelinesHealthFilter.
+type SettingsPipelinesHealthFilter string
+
+// SettingsPipelinesSortOrder defines model for Settings.PipelinesSortOrder.
+type SettingsPipelinesSortOrder string
+
+// SettingsTheme defines model for Settings.Theme.
+type SettingsTheme string
+
+// SettingsUpdate Every property is optional; an absent one is left untouched. A property set to null clears it back to its documented default instead of setting it.
+type SettingsUpdate struct {
+	ForgeFilter           *SettingsUpdateForgeFilter           `json:"forgeFilter,omitempty"`
+	PipelinesHealthFilter *SettingsUpdatePipelinesHealthFilter `json:"pipelinesHealthFilter,omitempty"`
+	PipelinesRepoSelector *string                              `json:"pipelinesRepoSelector,omitempty"`
+	PipelinesSortOrder    *SettingsUpdatePipelinesSortOrder    `json:"pipelinesSortOrder,omitempty"`
+	Theme                 *SettingsUpdateTheme                 `json:"theme,omitempty"`
+}
+
+// SettingsUpdateForgeFilter defines model for SettingsUpdate.ForgeFilter.
+type SettingsUpdateForgeFilter string
+
+// SettingsUpdatePipelinesHealthFilter defines model for SettingsUpdate.PipelinesHealthFilter.
+type SettingsUpdatePipelinesHealthFilter string
+
+// SettingsUpdatePipelinesSortOrder defines model for SettingsUpdate.PipelinesSortOrder.
+type SettingsUpdatePipelinesSortOrder string
+
+// SettingsUpdateTheme defines model for SettingsUpdate.Theme.
+type SettingsUpdateTheme string
+
+// StageFailureCount defines model for StageFailureCount.
+type StageFailureCount struct {
+	Failures int    `json:"failures"`
+	Step     string `json:"step"`
+}
+
 // Step defines model for Step.
 type Step struct {
 	DurationContributionSeconds float32 `json:"durationContributionSeconds"`
 	ExecSeconds                 float32 `json:"execSeconds"`
-	FailureRate                 float32 `json:"failureRate"`
-	Flaky                       bool    `json:"flaky"`
 
-	// ForgeUrl Deep link to this step's log on the originating forge.
+	// FailureCount Times this step failed within the window.
+	FailureCount int     `json:"failureCount"`
+	FailureRate  float32 `json:"failureRate"`
+	Flaky        bool    `json:"flaky"`
+
+	// ForgeUrl Deep link to one occurrence's log on the originating forge -- not necessarily one where the step failed. GET .../flaky-runs is the reliable way to reach a run the step actually failed on.
 	ForgeUrl     *string `json:"forgeUrl,omitempty"`
 	Id           string  `json:"id"`
 	Name         string  `json:"name"`
@@ -264,6 +718,14 @@ type Trend struct {
 	// Rate 0-1. Present on a failure-rate trend.
 	Rate       *[]float32  `json:"rate,omitempty"`
 	Timestamps []time.Time `json:"timestamps"`
+}
+
+// UnhealthyStepsList defines model for UnhealthyStepsList.
+type UnhealthyStepsList struct {
+	Groups []PipelineStepsGroup `json:"groups"`
+
+	// HasMore True when pipeline groups beyond this page have an unhealthy step. Always false when limit was omitted.
+	HasMore bool `json:"hasMore"`
 }
 
 // UsageEntry defines model for UsageEntry.
@@ -299,11 +761,23 @@ type Offset = int
 // PipelineId defines model for PipelineId.
 type PipelineId = string
 
+// PipelineRepoIdFilter defines model for PipelineRepoIdFilter.
+type PipelineRepoIdFilter = string
+
 // RepoForgeFilter defines model for RepoForgeFilter.
 type RepoForgeFilter = Forge
 
 // RepoId defines model for RepoId.
 type RepoId = string
+
+// RunId defines model for RunId.
+type RunId = string
+
+// RunStatusFilter defines model for RunStatusFilter.
+type RunStatusFilter string
+
+// StepName defines model for StepName.
+type StepName = string
 
 // Window defines model for Window.
 type Window = string
@@ -314,14 +788,65 @@ type BadGateway = Error
 // BadRequest defines model for BadRequest.
 type BadRequest = Error
 
+// Conflict defines model for Conflict.
+type Conflict = Error
+
 // NotFound defines model for NotFound.
 type NotFound = Error
 
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = Error
 
+// AddCredentialParams defines parameters for AddCredential.
+type AddCredentialParams struct {
+	// Label A caller-supplied name for the new credential (e.g. "MacBook", "iPhone"), shown in the credential list. Defaults to an empty label if omitted.
+	Label *string `form:"label,omitempty" json:"label,omitempty"`
+}
+
+// GetFailureInsightsParams defines parameters for GetFailureInsights.
+type GetFailureInsightsParams struct {
+	// RepoId Restrict the list to one tracked repo. Omitted returns every repo's pipelines.
+	RepoId *PipelineRepoIdFilter `form:"repoId,omitempty" json:"repoId,omitempty"`
+
+	// Forge Restrict the list to one forge. Omitted returns every forge.
+	Forge *RepoForgeFilter `form:"forge,omitempty" json:"forge,omitempty"`
+
+	// Window Trailing run count or duration the trend/ranking is computed over. Defaults to a server-chosen rolling window.
+	Window *Window `form:"window,omitempty" json:"window,omitempty"`
+}
+
+// McpEndpointJSONBody defines parameters for McpEndpoint.
+type McpEndpointJSONBody = map[string]interface{}
+
+// ListPipelinesParams defines parameters for ListPipelines.
+type ListPipelinesParams struct {
+	// RepoId Restrict the list to one tracked repo. Omitted returns every repo's pipelines.
+	RepoId *PipelineRepoIdFilter `form:"repoId,omitempty" json:"repoId,omitempty"`
+
+	// Forge Restrict the list to one forge. Omitted returns every forge.
+	Forge *RepoForgeFilter `form:"forge,omitempty" json:"forge,omitempty"`
+
+	// Window Trailing run count or duration the trend/ranking is computed over. Defaults to a server-chosen rolling window.
+	Window *Window `form:"window,omitempty" json:"window,omitempty"`
+
+	// Limit Max items to return. Omitted returns every matching item, unpaginated.
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Items to skip before the returned page.
+	Offset *Offset `form:"offset,omitempty" json:"offset,omitempty"`
+}
+
 // GetPipelineParams defines parameters for GetPipeline.
 type GetPipelineParams struct {
+	// Window Trailing run count or duration the trend/ranking is computed over. Defaults to a server-chosen rolling window.
+	Window *Window `form:"window,omitempty" json:"window,omitempty"`
+}
+
+// ListFlakyRunsParams defines parameters for ListFlakyRuns.
+type ListFlakyRunsParams struct {
+	// Step A step's name, exactly as GET .../steps reports it.
+	Step StepName `form:"step" json:"step"`
+
 	// Window Trailing run count or duration the trend/ranking is computed over. Defaults to a server-chosen rolling window.
 	Window *Window `form:"window,omitempty" json:"window,omitempty"`
 }
@@ -344,16 +869,51 @@ type ListReposParams struct {
 	Offset *Offset `form:"offset,omitempty" json:"offset,omitempty"`
 }
 
+// ListRepoIdentifiersParams defines parameters for ListRepoIdentifiers.
+type ListRepoIdentifiersParams struct {
+	Forge Forge `form:"forge" json:"forge"`
+
+	// ForgejoInstanceUrl Restricts to one Forgejo instance. Ignored for GitHub.
+	ForgejoInstanceUrl *string `form:"forgejoInstanceUrl,omitempty" json:"forgejoInstanceUrl,omitempty"`
+}
+
 // GetRepoUsageParams defines parameters for GetRepoUsage.
 type GetRepoUsageParams struct {
 	// Window Trailing run count or duration the trend/ranking is computed over. Defaults to a server-chosen rolling window.
 	Window *Window `form:"window,omitempty" json:"window,omitempty"`
 }
 
+// ListRunsParams defines parameters for ListRuns.
+type ListRunsParams struct {
+	// RepoId Restrict the list to one tracked repo. Omitted returns every repo's pipelines.
+	RepoId *PipelineRepoIdFilter `form:"repoId,omitempty" json:"repoId,omitempty"`
+
+	// Forge Restrict the list to one forge. Omitted returns every forge.
+	Forge *RepoForgeFilter `form:"forge,omitempty" json:"forge,omitempty"`
+
+	// Status Restrict runs to one status bucket. `failed` is a concluded failure, `running` is queued or in progress, `success` is a concluded success. Omitted or `all` returns every run.
+	Status *ListRunsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+
+	// Limit Max items to return. Omitted returns every matching item, unpaginated.
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Items to skip before the returned page.
+	Offset *Offset `form:"offset,omitempty" json:"offset,omitempty"`
+}
+
+// ListRunsParamsStatus defines parameters for ListRuns.
+type ListRunsParamsStatus string
+
 // ListUnhealthyStepsParams defines parameters for ListUnhealthySteps.
 type ListUnhealthyStepsParams struct {
 	// Window Trailing run count or duration the trend/ranking is computed over. Defaults to a server-chosen rolling window.
 	Window *Window `form:"window,omitempty" json:"window,omitempty"`
+
+	// Limit Max items to return. Omitted returns every matching item, unpaginated.
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Items to skip before the returned page.
+	Offset *Offset `form:"offset,omitempty" json:"offset,omitempty"`
 }
 
 // ForgejoWebhookJSONBody defines parameters for ForgejoWebhook.
@@ -376,17 +936,26 @@ type GithubWebhookParams struct {
 	XGitHubEvent     string `json:"X-GitHub-Event"`
 }
 
+// AddCredentialJSONRequestBody defines body for AddCredential for application/json ContentType.
+type AddCredentialJSONRequestBody = WebAuthnAttestationResponse
+
 // WebauthnLoginJSONRequestBody defines body for WebauthnLogin for application/json ContentType.
 type WebauthnLoginJSONRequestBody = WebAuthnAssertionResponse
 
 // WebauthnRegisterJSONRequestBody defines body for WebauthnRegister for application/json ContentType.
 type WebauthnRegisterJSONRequestBody = WebAuthnAttestationResponse
 
+// McpEndpointJSONRequestBody defines body for McpEndpoint for application/json ContentType.
+type McpEndpointJSONRequestBody = McpEndpointJSONBody
+
 // RegisterRepoJSONRequestBody defines body for RegisterRepo for application/json ContentType.
 type RegisterRepoJSONRequestBody = RepoRegistration
 
 // DiscoverReposJSONRequestBody defines body for DiscoverRepos for application/json ContentType.
 type DiscoverReposJSONRequestBody = RepoDiscoveryRequest
+
+// UpdateSettingsJSONRequestBody defines body for UpdateSettings for application/json ContentType.
+type UpdateSettingsJSONRequestBody = SettingsUpdate
 
 // ForgejoWebhookJSONRequestBody defines body for ForgejoWebhook for application/json ContentType.
 type ForgejoWebhookJSONRequestBody = ForgejoWebhookJSONBody
@@ -468,6 +1037,45 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 // The interface specification for the client above.
 type ClientInterface interface {
 
+	// ListCredentials List the account's registered credentials
+	//
+	// Session-only, same reasoning as addCredentialOptions.
+	//
+	// Corresponds with GET /api/auth/credentials (the `ListCredentials` operationId).
+	ListCredentials(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddCredentialWithBody Complete the "add another passkey" ceremony
+	//
+	// Session-only, same reasoning as addCredentialOptions.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/auth/credentials (the `AddCredential` operationId).
+	AddCredentialWithBody(ctx context.Context, params *AddCredentialParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddCredential Complete the "add another passkey" ceremony
+	//
+	// Session-only, same reasoning as addCredentialOptions.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/auth/credentials (the `AddCredential` operationId).
+	AddCredential(ctx context.Context, params *AddCredentialParams, body AddCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddCredentialOptions Begin an authenticated "add another passkey" ceremony
+	//
+	// Session-only -- an API token can't enroll another credential on the account any more than it can mint another token. Distinct from POST /api/auth/register/options: that ceremony is the anonymous first-run registration and only ever runs once per account; this one runs from within an existing session and excludes credentials already registered to it.
+	//
+	// Corresponds with POST /api/auth/credentials/options (the `AddCredentialOptions` operationId).
+	AddCredentialOptions(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RevokeCredential Revoke a credential
+	//
+	// Session-only, same reasoning as addCredentialOptions. Rejected with 409 if credentialId is the account's last remaining credential -- revoking it would leave the account with no way to log in.
+	//
+	// Corresponds with DELETE /api/auth/credentials/{credentialId} (the `RevokeCredential` operationId).
+	RevokeCredential(ctx context.Context, credentialId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// WebauthnLoginWithBody Complete WebAuthn login
 	//
 	// Takes any type of body and a specified content type.
@@ -511,6 +1119,27 @@ type ClientInterface interface {
 	// Corresponds with POST /api/auth/register/options (the `WebauthnRegisterOptions` operationId).
 	WebauthnRegisterOptions(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// IssueApiToken Issue a new API token
+	//
+	// Session-only -- an API token can't be used to issue another one. The raw token value is returned once, here, and is never recoverable afterward.
+	//
+	// Corresponds with POST /api/auth/tokens (the `IssueApiToken` operationId).
+	IssueApiToken(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RevokeApiToken Revoke an API token
+	//
+	// Session-only, same reasoning as issuing one.
+	//
+	// Corresponds with DELETE /api/auth/tokens/{tokenId} (the `RevokeApiToken` operationId).
+	RevokeApiToken(ctx context.Context, tokenId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetFailureInsights Failure aggregates over a window -- pass rate, MTTR, failure distribution, root-cause groups
+	//
+	// Backs the failure overview and root-cause views. "Stage" means step: forges expose workflows, jobs and steps but no stage taxonomy, so the distribution and the groups are by failing step name. `passRateDelta` compares against the preceding window of equal length. Failure categories are heuristic (step conclusion and name), never log-derived; a failure no rule matches is `uncategorised`.
+	//
+	// Corresponds with GET /api/insights/failures (the `GetFailureInsights` operationId).
+	GetFailureInsights(ctx context.Context, params *GetFailureInsightsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetGitHubRateLimitInsights GitHub REST API rate-limit usage, grouped by token
 	//
 	// One entry per distinct GitHub token this app holds (not per repo -- the same token often tracks more than one repo), with the repos it covers and the token's most recently observed rate-limit status. That status is read from a real API response's X-RateLimit-* headers rather than a dedicated poll, per GitHub's own guidance (docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api) -- `status` is absent until a request has actually been made with that token (reconciliation polling, or webhook/discovery calls).
@@ -518,15 +1147,40 @@ type ClientInterface interface {
 	// Corresponds with GET /api/insights/github-rate-limit (the `GetGitHubRateLimitInsights` operationId).
 	GetGitHubRateLimitInsights(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// ListPipelines Overview of every tracked pipeline and its health status
+	// McpEndpointWithBody MCP server (Streamable HTTP transport)
+	//
+	// Serves an MCP server over the Streamable HTTP transport (mcp-endpoint/spec.md), exposing the same pipeline health, trend, flaky-step, and usage data as read-only MCP tools. The request and response bodies are MCP's own JSON-RPC 2.0 envelope, not a REST payload -- this entry documents the endpoint for discoverability and auth, not for REST client generation.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/mcp (the `McpEndpoint` operationId).
+	McpEndpointWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// McpEndpoint MCP server (Streamable HTTP transport)
+	//
+	// Serves an MCP server over the Streamable HTTP transport (mcp-endpoint/spec.md), exposing the same pipeline health, trend, flaky-step, and usage data as read-only MCP tools. The request and response bodies are MCP's own JSON-RPC 2.0 envelope, not a REST payload -- this entry documents the endpoint for discoverability and auth, not for REST client generation.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/mcp (the `McpEndpoint` operationId).
+	McpEndpoint(ctx context.Context, body McpEndpointJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListPipelines A page of tracked pipelines and their health status
 	//
 	// Corresponds with GET /api/pipelines (the `ListPipelines` operationId).
-	ListPipelines(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+	ListPipelines(ctx context.Context, params *ListPipelinesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetPipeline Duration and failure-rate trend for one pipeline
 	//
 	// Corresponds with GET /api/pipelines/{pipelineId} (the `GetPipeline` operationId).
 	GetPipeline(ctx context.Context, pipelineId PipelineId, params *GetPipelineParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListFlakyRuns Every run in which one named step failed, most-recent-first
+	//
+	// The step-scoped drill-down from a flaky (or previously flaky) step in GET .../steps -- lets a click land on the run that actually failed instead of an aggregate link that may point at a run which has since passed. Available regardless of the pipeline's current health status, since a step's failures can age out of the live window before anyone gets a chance to look.
+	//
+	// Corresponds with GET /api/pipelines/{pipelineId}/flaky-runs (the `ListFlakyRuns` operationId).
+	ListFlakyRuns(ctx context.Context, pipelineId PipelineId, params *ListFlakyRunsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetPipelineSteps Step breakdown -- duration ranking, queue/exec split, failure rate, flaky flag
 	//
@@ -574,6 +1228,13 @@ type ClientInterface interface {
 	// Corresponds with POST /api/repos/discover (the `DiscoverRepos` operationId).
 	DiscoverRepos(ctx context.Context, body DiscoverReposJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListRepoIdentifiers List every tracked identifier for a forge, unpaginated
+	//
+	// Backs Discover's "already tracked" check, which needs to see every tracked repo regardless of how many are tracked, not just whatever page a paginated GET /api/repos happens to be showing (see forge-ingestion/spec.md's "Repo tracking registration").
+	//
+	// Corresponds with GET /api/repos/identifiers (the `ListRepoIdentifiers` operationId).
+	ListRepoIdentifiers(ctx context.Context, params *ListRepoIdentifiersParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// UntrackRepo Stop tracking a repository
 	//
 	// Removes the repo and cascades to its stored runs, jobs, and steps. Does not attempt to delete the webhook created on the forge at registration time.
@@ -586,7 +1247,44 @@ type ClientInterface interface {
 	// Corresponds with GET /api/repos/{repoId}/usage (the `GetRepoUsage` operationId).
 	GetRepoUsage(ctx context.Context, repoId RepoId, params *GetRepoUsageParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// ListUnhealthySteps Every flaky or failing step across every tracked pipeline, grouped by pipeline
+	// ListRuns A page of runs, newest first, each with its steps for a stage progression bar
+	//
+	// Corresponds with GET /api/runs (the `ListRuns` operationId).
+	ListRuns(ctx context.Context, params *ListRunsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetRunSteps One run's own steps and their statuses
+	//
+	// What a flaky run in GET .../flaky-runs drills down into -- scoped to a single run, so each step's forgeUrl points at the exact job that ran, never a different occurrence of the same step name.
+	//
+	// Corresponds with GET /api/runs/{runId}/steps (the `GetRunSteps` operationId).
+	GetRunSteps(ctx context.Context, runId RunId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetSettings The dashboard account's persisted UI settings
+	//
+	// Every setting is always present in the response, each one either an explicitly-stored value or its documented default -- never null or missing.
+	//
+	// Corresponds with GET /api/settings (the `GetSettings` operationId).
+	GetSettings(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateSettingsWithBody Update one or more settings
+	//
+	// A key present with a value sets it. A key present with JSON null clears it, reverting to its documented default on the next read -- this is also how the Pipelines page's "Reset filters" works: a single PATCH setting pipelinesHealthFilter/pipelinesRepoSelector/pipelinesSortOrder to null. A key absent from the body is left untouched. An invalid key or an enum value outside its documented set rejects the whole request; nothing already stored changes.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PATCH /api/settings (the `UpdateSettings` operationId).
+	UpdateSettingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateSettings Update one or more settings
+	//
+	// A key present with a value sets it. A key present with JSON null clears it, reverting to its documented default on the next read -- this is also how the Pipelines page's "Reset filters" works: a single PATCH setting pipelinesHealthFilter/pipelinesRepoSelector/pipelinesSortOrder to null. A key absent from the body is left untouched. An invalid key or an enum value outside its documented set rejects the whole request; nothing already stored changes.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PATCH /api/settings (the `UpdateSettings` operationId).
+	UpdateSettings(ctx context.Context, body UpdateSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListUnhealthySteps A page of pipelines with a flaky or failing step, grouped by pipeline
 	//
 	// Corresponds with GET /api/steps/unhealthy (the `ListUnhealthySteps` operationId).
 	ListUnhealthySteps(ctx context.Context, params *ListUnhealthyStepsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -625,6 +1323,95 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /webhooks/github (the `GithubWebhook` operationId).
 	GithubWebhook(ctx context.Context, params *GithubWebhookParams, body GithubWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+// ListCredentials List the account's registered credentials
+//
+// Session-only, same reasoning as addCredentialOptions.
+//
+// Corresponds with GET /api/auth/credentials (the `ListCredentials` operationId).
+func (c *Client) ListCredentials(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListCredentialsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// AddCredentialWithBody Complete the "add another passkey" ceremony
+//
+// Session-only, same reasoning as addCredentialOptions.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/auth/credentials (the `AddCredential` operationId).
+func (c *Client) AddCredentialWithBody(ctx context.Context, params *AddCredentialParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddCredentialRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// AddCredential Complete the "add another passkey" ceremony
+//
+// Session-only, same reasoning as addCredentialOptions.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/auth/credentials (the `AddCredential` operationId).
+func (c *Client) AddCredential(ctx context.Context, params *AddCredentialParams, body AddCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddCredentialRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// AddCredentialOptions Begin an authenticated "add another passkey" ceremony
+//
+// Session-only -- an API token can't enroll another credential on the account any more than it can mint another token. Distinct from POST /api/auth/register/options: that ceremony is the anonymous first-run registration and only ever runs once per account; this one runs from within an existing session and excludes credentials already registered to it.
+//
+// Corresponds with POST /api/auth/credentials/options (the `AddCredentialOptions` operationId).
+func (c *Client) AddCredentialOptions(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddCredentialOptionsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RevokeCredential Revoke a credential
+//
+// Session-only, same reasoning as addCredentialOptions. Rejected with 409 if credentialId is the account's last remaining credential -- revoking it would leave the account with no way to log in.
+//
+// Corresponds with DELETE /api/auth/credentials/{credentialId} (the `RevokeCredential` operationId).
+func (c *Client) RevokeCredential(ctx context.Context, credentialId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRevokeCredentialRequest(c.Server, credentialId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 // WebauthnLoginWithBody Complete WebAuthn login
@@ -740,6 +1527,57 @@ func (c *Client) WebauthnRegisterOptions(ctx context.Context, reqEditors ...Requ
 	return c.Client.Do(req)
 }
 
+// IssueApiToken Issue a new API token
+//
+// Session-only -- an API token can't be used to issue another one. The raw token value is returned once, here, and is never recoverable afterward.
+//
+// Corresponds with POST /api/auth/tokens (the `IssueApiToken` operationId).
+func (c *Client) IssueApiToken(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewIssueApiTokenRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RevokeApiToken Revoke an API token
+//
+// Session-only, same reasoning as issuing one.
+//
+// Corresponds with DELETE /api/auth/tokens/{tokenId} (the `RevokeApiToken` operationId).
+func (c *Client) RevokeApiToken(ctx context.Context, tokenId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRevokeApiTokenRequest(c.Server, tokenId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetFailureInsights Failure aggregates over a window -- pass rate, MTTR, failure distribution, root-cause groups
+//
+// Backs the failure overview and root-cause views. "Stage" means step: forges expose workflows, jobs and steps but no stage taxonomy, so the distribution and the groups are by failing step name. `passRateDelta` compares against the preceding window of equal length. Failure categories are heuristic (step conclusion and name), never log-derived; a failure no rule matches is `uncategorised`.
+//
+// Corresponds with GET /api/insights/failures (the `GetFailureInsights` operationId).
+func (c *Client) GetFailureInsights(ctx context.Context, params *GetFailureInsightsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetFailureInsightsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetGitHubRateLimitInsights GitHub REST API rate-limit usage, grouped by token
 //
 // One entry per distinct GitHub token this app holds (not per repo -- the same token often tracks more than one repo), with the repos it covers and the token's most recently observed rate-limit status. That status is read from a real API response's X-RateLimit-* headers rather than a dedicated poll, per GitHub's own guidance (docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api) -- `status` is absent until a request has actually been made with that token (reconciliation polling, or webhook/discovery calls).
@@ -757,11 +1595,49 @@ func (c *Client) GetGitHubRateLimitInsights(ctx context.Context, reqEditors ...R
 	return c.Client.Do(req)
 }
 
-// ListPipelines Overview of every tracked pipeline and its health status
+// McpEndpointWithBody MCP server (Streamable HTTP transport)
+//
+// Serves an MCP server over the Streamable HTTP transport (mcp-endpoint/spec.md), exposing the same pipeline health, trend, flaky-step, and usage data as read-only MCP tools. The request and response bodies are MCP's own JSON-RPC 2.0 envelope, not a REST payload -- this entry documents the endpoint for discoverability and auth, not for REST client generation.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/mcp (the `McpEndpoint` operationId).
+func (c *Client) McpEndpointWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewMcpEndpointRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// McpEndpoint MCP server (Streamable HTTP transport)
+//
+// Serves an MCP server over the Streamable HTTP transport (mcp-endpoint/spec.md), exposing the same pipeline health, trend, flaky-step, and usage data as read-only MCP tools. The request and response bodies are MCP's own JSON-RPC 2.0 envelope, not a REST payload -- this entry documents the endpoint for discoverability and auth, not for REST client generation.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/mcp (the `McpEndpoint` operationId).
+func (c *Client) McpEndpoint(ctx context.Context, body McpEndpointJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewMcpEndpointRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListPipelines A page of tracked pipelines and their health status
 //
 // Corresponds with GET /api/pipelines (the `ListPipelines` operationId).
-func (c *Client) ListPipelines(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListPipelinesRequest(c.Server)
+func (c *Client) ListPipelines(ctx context.Context, params *ListPipelinesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListPipelinesRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -777,6 +1653,23 @@ func (c *Client) ListPipelines(ctx context.Context, reqEditors ...RequestEditorF
 // Corresponds with GET /api/pipelines/{pipelineId} (the `GetPipeline` operationId).
 func (c *Client) GetPipeline(ctx context.Context, pipelineId PipelineId, params *GetPipelineParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetPipelineRequest(c.Server, pipelineId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListFlakyRuns Every run in which one named step failed, most-recent-first
+//
+// The step-scoped drill-down from a flaky (or previously flaky) step in GET .../steps -- lets a click land on the run that actually failed instead of an aggregate link that may point at a run which has since passed. Available regardless of the pipeline's current health status, since a step's failures can age out of the live window before anyone gets a chance to look.
+//
+// Corresponds with GET /api/pipelines/{pipelineId}/flaky-runs (the `ListFlakyRuns` operationId).
+func (c *Client) ListFlakyRuns(ctx context.Context, pipelineId PipelineId, params *ListFlakyRunsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListFlakyRunsRequest(c.Server, pipelineId, params)
 	if err != nil {
 		return nil, err
 	}
@@ -893,6 +1786,23 @@ func (c *Client) DiscoverRepos(ctx context.Context, body DiscoverReposJSONReques
 	return c.Client.Do(req)
 }
 
+// ListRepoIdentifiers List every tracked identifier for a forge, unpaginated
+//
+// Backs Discover's "already tracked" check, which needs to see every tracked repo regardless of how many are tracked, not just whatever page a paginated GET /api/repos happens to be showing (see forge-ingestion/spec.md's "Repo tracking registration").
+//
+// Corresponds with GET /api/repos/identifiers (the `ListRepoIdentifiers` operationId).
+func (c *Client) ListRepoIdentifiers(ctx context.Context, params *ListRepoIdentifiersParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListRepoIdentifiersRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // UntrackRepo Stop tracking a repository
 //
 // Removes the repo and cascades to its stored runs, jobs, and steps. Does not attempt to delete the webhook created on the forge at registration time.
@@ -925,7 +1835,94 @@ func (c *Client) GetRepoUsage(ctx context.Context, repoId RepoId, params *GetRep
 	return c.Client.Do(req)
 }
 
-// ListUnhealthySteps Every flaky or failing step across every tracked pipeline, grouped by pipeline
+// ListRuns A page of runs, newest first, each with its steps for a stage progression bar
+//
+// Corresponds with GET /api/runs (the `ListRuns` operationId).
+func (c *Client) ListRuns(ctx context.Context, params *ListRunsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListRunsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetRunSteps One run's own steps and their statuses
+//
+// What a flaky run in GET .../flaky-runs drills down into -- scoped to a single run, so each step's forgeUrl points at the exact job that ran, never a different occurrence of the same step name.
+//
+// Corresponds with GET /api/runs/{runId}/steps (the `GetRunSteps` operationId).
+func (c *Client) GetRunSteps(ctx context.Context, runId RunId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRunStepsRequest(c.Server, runId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetSettings The dashboard account's persisted UI settings
+//
+// Every setting is always present in the response, each one either an explicitly-stored value or its documented default -- never null or missing.
+//
+// Corresponds with GET /api/settings (the `GetSettings` operationId).
+func (c *Client) GetSettings(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetSettingsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateSettingsWithBody Update one or more settings
+//
+// A key present with a value sets it. A key present with JSON null clears it, reverting to its documented default on the next read -- this is also how the Pipelines page's "Reset filters" works: a single PATCH setting pipelinesHealthFilter/pipelinesRepoSelector/pipelinesSortOrder to null. A key absent from the body is left untouched. An invalid key or an enum value outside its documented set rejects the whole request; nothing already stored changes.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PATCH /api/settings (the `UpdateSettings` operationId).
+func (c *Client) UpdateSettingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateSettingsRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateSettings Update one or more settings
+//
+// A key present with a value sets it. A key present with JSON null clears it, reverting to its documented default on the next read -- this is also how the Pipelines page's "Reset filters" works: a single PATCH setting pipelinesHealthFilter/pipelinesRepoSelector/pipelinesSortOrder to null. A key absent from the body is left untouched. An invalid key or an enum value outside its documented set rejects the whole request; nothing already stored changes.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PATCH /api/settings (the `UpdateSettings` operationId).
+func (c *Client) UpdateSettings(ctx context.Context, body UpdateSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateSettingsRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListUnhealthySteps A page of pipelines with a flaky or failing step, grouped by pipeline
 //
 // Corresponds with GET /api/steps/unhealthy (the `ListUnhealthySteps` operationId).
 func (c *Client) ListUnhealthySteps(ctx context.Context, params *ListUnhealthyStepsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -1023,6 +2020,161 @@ func (c *Client) GithubWebhook(ctx context.Context, params *GithubWebhookParams,
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewListCredentialsRequest constructs an http.Request for the ListCredentials method
+func NewListCredentialsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/auth/credentials")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAddCredentialRequest calls the generic AddCredential builder with application/json body
+func NewAddCredentialRequest(server string, params *AddCredentialParams, body AddCredentialJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAddCredentialRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewAddCredentialRequestWithBody constructs an http.Request for the AddCredential method, with any body, and a specified content type
+func NewAddCredentialRequestWithBody(server string, params *AddCredentialParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/auth/credentials")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Label != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "label", *params.Label, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewAddCredentialOptionsRequest constructs an http.Request for the AddCredentialOptions method
+func NewAddCredentialOptionsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/auth/credentials/options")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRevokeCredentialRequest constructs an http.Request for the RevokeCredential method
+func NewRevokeCredentialRequest(server string, credentialId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "credentialId", credentialId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/auth/credentials/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
 // NewWebauthnLoginRequest calls the generic WebauthnLogin builder with application/json body
@@ -1186,6 +2338,145 @@ func NewWebauthnRegisterOptionsRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewIssueApiTokenRequest constructs an http.Request for the IssueApiToken method
+func NewIssueApiTokenRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/auth/tokens")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRevokeApiTokenRequest constructs an http.Request for the RevokeApiToken method
+func NewRevokeApiTokenRequest(server string, tokenId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "tokenId", tokenId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/auth/tokens/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetFailureInsightsRequest constructs an http.Request for the GetFailureInsights method
+func NewGetFailureInsightsRequest(server string, params *GetFailureInsightsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/insights/failures")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.RepoId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "repoId", *params.RepoId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Forge != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "forge", *params.Forge, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Window != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "window", *params.Window, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetGitHubRateLimitInsightsRequest constructs an http.Request for the GetGitHubRateLimitInsights method
 func NewGetGitHubRateLimitInsightsRequest(server string) (*http.Request, error) {
 	var err error
@@ -1213,8 +2504,48 @@ func NewGetGitHubRateLimitInsightsRequest(server string) (*http.Request, error) 
 	return req, nil
 }
 
+// NewMcpEndpointRequest calls the generic McpEndpoint builder with application/json body
+func NewMcpEndpointRequest(server string, body McpEndpointJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewMcpEndpointRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewMcpEndpointRequestWithBody constructs an http.Request for the McpEndpoint method, with any body, and a specified content type
+func NewMcpEndpointRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/mcp")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListPipelinesRequest constructs an http.Request for the ListPipelines method
-func NewListPipelinesRequest(server string) (*http.Request, error) {
+func NewListPipelinesRequest(server string, params *ListPipelinesParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -1230,6 +2561,81 @@ func NewListPipelinesRequest(server string) (*http.Request, error) {
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.RepoId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "repoId", *params.RepoId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Forge != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "forge", *params.Forge, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Window != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "window", *params.Window, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "offset", *params.Offset, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
 	}
 
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
@@ -1274,6 +2680,75 @@ func NewGetPipelineRequest(server string, pipelineId PipelineId, params *GetPipe
 		// styled parameters, preserving literal commas as delimiters
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
+
+		if params.Window != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "window", *params.Window, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListFlakyRunsRequest constructs an http.Request for the ListFlakyRuns method
+func NewListFlakyRunsRequest(server string, pipelineId PipelineId, params *ListFlakyRunsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "pipelineId", pipelineId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/pipelines/%s/flaky-runs", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "step", params.Step, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
 
 		if params.Window != nil {
 
@@ -1520,6 +2995,68 @@ func NewDiscoverReposRequestWithBody(server string, contentType string, body io.
 	return req, nil
 }
 
+// NewListRepoIdentifiersRequest constructs an http.Request for the ListRepoIdentifiers method
+func NewListRepoIdentifiersRequest(server string, params *ListRepoIdentifiersParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/repos/identifiers")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "forge", params.Forge, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.ForgejoInstanceUrl != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "forgejoInstanceUrl", *params.ForgejoInstanceUrl, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewUntrackRepoRequest constructs an http.Request for the UntrackRepo method
 func NewUntrackRepoRequest(server string, repoId RepoId) (*http.Request, error) {
 	var err error
@@ -1615,6 +3152,209 @@ func NewGetRepoUsageRequest(server string, repoId RepoId, params *GetRepoUsagePa
 	return req, nil
 }
 
+// NewListRunsRequest constructs an http.Request for the ListRuns method
+func NewListRunsRequest(server string, params *ListRunsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/runs")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.RepoId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "repoId", *params.RepoId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Forge != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "forge", *params.Forge, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Status != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "status", *params.Status, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "offset", *params.Offset, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetRunStepsRequest constructs an http.Request for the GetRunSteps method
+func NewGetRunStepsRequest(server string, runId RunId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "runId", runId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/runs/%s/steps", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetSettingsRequest constructs an http.Request for the GetSettings method
+func NewGetSettingsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/settings")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateSettingsRequest calls the generic UpdateSettings builder with application/json body
+func NewUpdateSettingsRequest(server string, body UpdateSettingsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateSettingsRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewUpdateSettingsRequestWithBody constructs an http.Request for the UpdateSettings method, with any body, and a specified content type
+func NewUpdateSettingsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/settings")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPatch, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListUnhealthyStepsRequest constructs an http.Request for the ListUnhealthySteps method
 func NewListUnhealthyStepsRequest(server string, params *ListUnhealthyStepsParams) (*http.Request, error) {
 	var err error
@@ -1646,6 +3386,30 @@ func NewListUnhealthyStepsRequest(server string, params *ListUnhealthyStepsParam
 		if params.Window != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "window", *params.Window, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "offset", *params.Offset, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -1864,6 +3628,51 @@ func WithBaseURL(baseURL string) ClientOption {
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
 
+	// ListCredentialsWithResponse List the account's registered credentials
+	//
+	// Session-only, same reasoning as addCredentialOptions.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/auth/credentials (the `ListCredentials` operationId).
+	ListCredentialsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListCredentialsResponse, error)
+
+	// AddCredentialWithBodyWithResponse Complete the "add another passkey" ceremony
+	//
+	// Session-only, same reasoning as addCredentialOptions.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/auth/credentials (the `AddCredential` operationId).
+	AddCredentialWithBodyWithResponse(ctx context.Context, params *AddCredentialParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddCredentialResponse, error)
+
+	// AddCredentialWithResponse Complete the "add another passkey" ceremony
+	//
+	// Session-only, same reasoning as addCredentialOptions.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/auth/credentials (the `AddCredential` operationId).
+	AddCredentialWithResponse(ctx context.Context, params *AddCredentialParams, body AddCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*AddCredentialResponse, error)
+
+	// AddCredentialOptionsWithResponse Begin an authenticated "add another passkey" ceremony
+	//
+	// Session-only -- an API token can't enroll another credential on the account any more than it can mint another token. Distinct from POST /api/auth/register/options: that ceremony is the anonymous first-run registration and only ever runs once per account; this one runs from within an existing session and excludes credentials already registered to it.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/auth/credentials/options (the `AddCredentialOptions` operationId).
+	AddCredentialOptionsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*AddCredentialOptionsResponse, error)
+
+	// RevokeCredentialWithResponse Revoke a credential
+	//
+	// Session-only, same reasoning as addCredentialOptions. Rejected with 409 if credentialId is the account's last remaining credential -- revoking it would leave the account with no way to log in.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /api/auth/credentials/{credentialId} (the `RevokeCredential` operationId).
+	RevokeCredentialWithResponse(ctx context.Context, credentialId string, reqEditors ...RequestEditorFn) (*RevokeCredentialResponse, error)
+
 	// WebauthnLoginWithBodyWithResponse Complete WebAuthn login
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
@@ -1913,6 +3722,33 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /api/auth/register/options (the `WebauthnRegisterOptions` operationId).
 	WebauthnRegisterOptionsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*WebauthnRegisterOptionsResponse, error)
 
+	// IssueApiTokenWithResponse Issue a new API token
+	//
+	// Session-only -- an API token can't be used to issue another one. The raw token value is returned once, here, and is never recoverable afterward.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/auth/tokens (the `IssueApiToken` operationId).
+	IssueApiTokenWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*IssueApiTokenResponse, error)
+
+	// RevokeApiTokenWithResponse Revoke an API token
+	//
+	// Session-only, same reasoning as issuing one.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /api/auth/tokens/{tokenId} (the `RevokeApiToken` operationId).
+	RevokeApiTokenWithResponse(ctx context.Context, tokenId string, reqEditors ...RequestEditorFn) (*RevokeApiTokenResponse, error)
+
+	// GetFailureInsightsWithResponse Failure aggregates over a window -- pass rate, MTTR, failure distribution, root-cause groups
+	//
+	// Backs the failure overview and root-cause views. "Stage" means step: forges expose workflows, jobs and steps but no stage taxonomy, so the distribution and the groups are by failing step name. `passRateDelta` compares against the preceding window of equal length. Failure categories are heuristic (step conclusion and name), never log-derived; a failure no rule matches is `uncategorised`.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/insights/failures (the `GetFailureInsights` operationId).
+	GetFailureInsightsWithResponse(ctx context.Context, params *GetFailureInsightsParams, reqEditors ...RequestEditorFn) (*GetFailureInsightsResponse, error)
+
 	// GetGitHubRateLimitInsightsWithResponse GitHub REST API rate-limit usage, grouped by token
 	//
 	// One entry per distinct GitHub token this app holds (not per repo -- the same token often tracks more than one repo), with the repos it covers and the token's most recently observed rate-limit status. That status is read from a real API response's X-RateLimit-* headers rather than a dedicated poll, per GitHub's own guidance (docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api) -- `status` is absent until a request has actually been made with that token (reconciliation polling, or webhook/discovery calls).
@@ -1922,12 +3758,30 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/insights/github-rate-limit (the `GetGitHubRateLimitInsights` operationId).
 	GetGitHubRateLimitInsightsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetGitHubRateLimitInsightsResponse, error)
 
-	// ListPipelinesWithResponse Overview of every tracked pipeline and its health status
+	// McpEndpointWithBodyWithResponse MCP server (Streamable HTTP transport)
+	//
+	// Serves an MCP server over the Streamable HTTP transport (mcp-endpoint/spec.md), exposing the same pipeline health, trend, flaky-step, and usage data as read-only MCP tools. The request and response bodies are MCP's own JSON-RPC 2.0 envelope, not a REST payload -- this entry documents the endpoint for discoverability and auth, not for REST client generation.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/mcp (the `McpEndpoint` operationId).
+	McpEndpointWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*McpEndpointResponse, error)
+
+	// McpEndpointWithResponse MCP server (Streamable HTTP transport)
+	//
+	// Serves an MCP server over the Streamable HTTP transport (mcp-endpoint/spec.md), exposing the same pipeline health, trend, flaky-step, and usage data as read-only MCP tools. The request and response bodies are MCP's own JSON-RPC 2.0 envelope, not a REST payload -- this entry documents the endpoint for discoverability and auth, not for REST client generation.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/mcp (the `McpEndpoint` operationId).
+	McpEndpointWithResponse(ctx context.Context, body McpEndpointJSONRequestBody, reqEditors ...RequestEditorFn) (*McpEndpointResponse, error)
+
+	// ListPipelinesWithResponse A page of tracked pipelines and their health status
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with GET /api/pipelines (the `ListPipelines` operationId).
-	ListPipelinesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListPipelinesResponse, error)
+	ListPipelinesWithResponse(ctx context.Context, params *ListPipelinesParams, reqEditors ...RequestEditorFn) (*ListPipelinesResponse, error)
 
 	// GetPipelineWithResponse Duration and failure-rate trend for one pipeline
 	//
@@ -1935,6 +3789,15 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/pipelines/{pipelineId} (the `GetPipeline` operationId).
 	GetPipelineWithResponse(ctx context.Context, pipelineId PipelineId, params *GetPipelineParams, reqEditors ...RequestEditorFn) (*GetPipelineResponse, error)
+
+	// ListFlakyRunsWithResponse Every run in which one named step failed, most-recent-first
+	//
+	// The step-scoped drill-down from a flaky (or previously flaky) step in GET .../steps -- lets a click land on the run that actually failed instead of an aggregate link that may point at a run which has since passed. Available regardless of the pipeline's current health status, since a step's failures can age out of the live window before anyone gets a chance to look.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/pipelines/{pipelineId}/flaky-runs (the `ListFlakyRuns` operationId).
+	ListFlakyRunsWithResponse(ctx context.Context, pipelineId PipelineId, params *ListFlakyRunsParams, reqEditors ...RequestEditorFn) (*ListFlakyRunsResponse, error)
 
 	// GetPipelineStepsWithResponse Step breakdown -- duration ranking, queue/exec split, failure rate, flaky flag
 	//
@@ -1986,6 +3849,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /api/repos/discover (the `DiscoverRepos` operationId).
 	DiscoverReposWithResponse(ctx context.Context, body DiscoverReposJSONRequestBody, reqEditors ...RequestEditorFn) (*DiscoverReposResponse, error)
 
+	// ListRepoIdentifiersWithResponse List every tracked identifier for a forge, unpaginated
+	//
+	// Backs Discover's "already tracked" check, which needs to see every tracked repo regardless of how many are tracked, not just whatever page a paginated GET /api/repos happens to be showing (see forge-ingestion/spec.md's "Repo tracking registration").
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/repos/identifiers (the `ListRepoIdentifiers` operationId).
+	ListRepoIdentifiersWithResponse(ctx context.Context, params *ListRepoIdentifiersParams, reqEditors ...RequestEditorFn) (*ListRepoIdentifiersResponse, error)
+
 	// UntrackRepoWithResponse Stop tracking a repository
 	//
 	// Removes the repo and cascades to its stored runs, jobs, and steps. Does not attempt to delete the webhook created on the forge at registration time.
@@ -2002,7 +3874,50 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/repos/{repoId}/usage (the `GetRepoUsage` operationId).
 	GetRepoUsageWithResponse(ctx context.Context, repoId RepoId, params *GetRepoUsageParams, reqEditors ...RequestEditorFn) (*GetRepoUsageResponse, error)
 
-	// ListUnhealthyStepsWithResponse Every flaky or failing step across every tracked pipeline, grouped by pipeline
+	// ListRunsWithResponse A page of runs, newest first, each with its steps for a stage progression bar
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/runs (the `ListRuns` operationId).
+	ListRunsWithResponse(ctx context.Context, params *ListRunsParams, reqEditors ...RequestEditorFn) (*ListRunsResponse, error)
+
+	// GetRunStepsWithResponse One run's own steps and their statuses
+	//
+	// What a flaky run in GET .../flaky-runs drills down into -- scoped to a single run, so each step's forgeUrl points at the exact job that ran, never a different occurrence of the same step name.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/runs/{runId}/steps (the `GetRunSteps` operationId).
+	GetRunStepsWithResponse(ctx context.Context, runId RunId, reqEditors ...RequestEditorFn) (*GetRunStepsResponse, error)
+
+	// GetSettingsWithResponse The dashboard account's persisted UI settings
+	//
+	// Every setting is always present in the response, each one either an explicitly-stored value or its documented default -- never null or missing.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/settings (the `GetSettings` operationId).
+	GetSettingsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetSettingsResponse, error)
+
+	// UpdateSettingsWithBodyWithResponse Update one or more settings
+	//
+	// A key present with a value sets it. A key present with JSON null clears it, reverting to its documented default on the next read -- this is also how the Pipelines page's "Reset filters" works: a single PATCH setting pipelinesHealthFilter/pipelinesRepoSelector/pipelinesSortOrder to null. A key absent from the body is left untouched. An invalid key or an enum value outside its documented set rejects the whole request; nothing already stored changes.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PATCH /api/settings (the `UpdateSettings` operationId).
+	UpdateSettingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateSettingsResponse, error)
+
+	// UpdateSettingsWithResponse Update one or more settings
+	//
+	// A key present with a value sets it. A key present with JSON null clears it, reverting to its documented default on the next read -- this is also how the Pipelines page's "Reset filters" works: a single PATCH setting pipelinesHealthFilter/pipelinesRepoSelector/pipelinesSortOrder to null. A key absent from the body is left untouched. An invalid key or an enum value outside its documented set rejects the whole request; nothing already stored changes.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PATCH /api/settings (the `UpdateSettings` operationId).
+	UpdateSettingsWithResponse(ctx context.Context, body UpdateSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSettingsResponse, error)
+
+	// ListUnhealthyStepsWithResponse A page of pipelines with a flaky or failing step, grouped by pipeline
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -2045,6 +3960,219 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /webhooks/github (the `GithubWebhook` operationId).
 	GithubWebhookWithResponse(ctx context.Context, params *GithubWebhookParams, body GithubWebhookJSONRequestBody, reqEditors ...RequestEditorFn) (*GithubWebhookResponse, error)
+}
+
+type ListCredentialsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *[]Credential
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListCredentialsResponse) GetJSON200() *[]Credential {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListCredentialsResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r ListCredentialsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListCredentialsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListCredentialsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListCredentialsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type AddCredentialResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r AddCredentialResponse) GetJSON400() *BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r AddCredentialResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r AddCredentialResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r AddCredentialResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddCredentialResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r AddCredentialResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+// AddCredentialOptionsResponse200Headers the declared response headers of an HTTP 200 response for AddCredentialOptions
+type AddCredentialOptionsResponse200Headers struct {
+	SetCookie *string
+}
+
+type AddCredentialOptionsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *WebAuthnCreationOptions
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// Headers200 the parsed response headers for an HTTP 200 response
+	Headers200 *AddCredentialOptionsResponse200Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r AddCredentialOptionsResponse) GetJSON200() *WebAuthnCreationOptions {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r AddCredentialOptionsResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r AddCredentialOptionsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r AddCredentialOptionsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddCredentialOptionsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r AddCredentialOptionsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type RevokeCredentialResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *NotFound
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r RevokeCredentialResponse) GetJSON400() *BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r RevokeCredentialResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r RevokeCredentialResponse) GetJSON404() *NotFound {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r RevokeCredentialResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetBody returns the raw response body bytes
+func (r RevokeCredentialResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RevokeCredentialResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RevokeCredentialResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RevokeCredentialResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
 }
 
 // WebauthnLoginResponse200Headers the declared response headers of an HTTP 200 response for WebauthnLogin
@@ -2301,6 +4429,150 @@ func (r WebauthnRegisterOptionsResponse) ContentType() string {
 	return ""
 }
 
+type IssueApiTokenResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *ApiToken
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r IssueApiTokenResponse) GetJSON201() *ApiToken {
+	return r.JSON201
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r IssueApiTokenResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r IssueApiTokenResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r IssueApiTokenResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r IssueApiTokenResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r IssueApiTokenResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type RevokeApiTokenResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *NotFound
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r RevokeApiTokenResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r RevokeApiTokenResponse) GetJSON404() *NotFound {
+	return r.JSON404
+}
+
+// GetBody returns the raw response body bytes
+func (r RevokeApiTokenResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RevokeApiTokenResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RevokeApiTokenResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RevokeApiTokenResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetFailureInsightsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *FailureInsights
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetFailureInsightsResponse) GetJSON200() *FailureInsights {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetFailureInsightsResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r GetFailureInsightsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetFailureInsightsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetFailureInsightsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetFailureInsightsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetGitHubRateLimitInsightsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -2349,17 +4621,65 @@ func (r GetGitHubRateLimitInsightsResponse) ContentType() string {
 	return ""
 }
 
-type ListPipelinesResponse struct {
+type McpEndpointResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *[]PipelineSummary
+	JSON200 *map[string]interface{}
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Unauthorized
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r ListPipelinesResponse) GetJSON200() *[]PipelineSummary {
+func (r McpEndpointResponse) GetJSON200() *map[string]interface{} {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r McpEndpointResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r McpEndpointResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r McpEndpointResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r McpEndpointResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r McpEndpointResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListPipelinesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PipelineList
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListPipelinesResponse) GetJSON200() *PipelineList {
 	return r.JSON200
 }
 
@@ -2446,6 +4766,61 @@ func (r GetPipelineResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetPipelineResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListFlakyRunsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *[]FlakyRun
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *NotFound
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListFlakyRunsResponse) GetJSON200() *[]FlakyRun {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListFlakyRunsResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r ListFlakyRunsResponse) GetJSON404() *NotFound {
+	return r.JSON404
+}
+
+// GetBody returns the raw response body bytes
+func (r ListFlakyRunsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListFlakyRunsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListFlakyRunsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListFlakyRunsResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -2564,6 +4939,8 @@ type RegisterRepoResponse struct {
 	JSON400 *BadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Unauthorized
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Conflict
 }
 
 // GetJSON201 returns the response for an HTTP 201 `application/json` response
@@ -2579,6 +4956,11 @@ func (r RegisterRepoResponse) GetJSON400() *BadRequest {
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
 func (r RegisterRepoResponse) GetJSON401() *Unauthorized {
 	return r.JSON401
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r RegisterRepoResponse) GetJSON409() *Conflict {
+	return r.JSON409
 }
 
 // GetBody returns the raw response body bytes
@@ -2666,6 +5048,65 @@ func (r DiscoverReposResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r DiscoverReposResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListRepoIdentifiersResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *struct {
+		Identifiers []string `json:"identifiers"`
+	}
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListRepoIdentifiersResponse) GetJSON200() *struct {
+	Identifiers []string `json:"identifiers"`
+} {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ListRepoIdentifiersResponse) GetJSON400() *BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListRepoIdentifiersResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r ListRepoIdentifiersResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListRepoIdentifiersResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListRepoIdentifiersResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListRepoIdentifiersResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -2775,17 +5216,230 @@ func (r GetRepoUsageResponse) ContentType() string {
 	return ""
 }
 
-type ListUnhealthyStepsResponse struct {
+type ListRunsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *[]PipelineStepsGroup
+	JSON200 *RunList
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *BadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Unauthorized
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r ListUnhealthyStepsResponse) GetJSON200() *[]PipelineStepsGroup {
+func (r ListRunsResponse) GetJSON200() *RunList {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ListRunsResponse) GetJSON400() *BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListRunsResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r ListRunsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListRunsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListRunsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListRunsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetRunStepsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RunDetail
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *NotFound
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetRunStepsResponse) GetJSON200() *RunDetail {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetRunStepsResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetRunStepsResponse) GetJSON404() *NotFound {
+	return r.JSON404
+}
+
+// GetBody returns the raw response body bytes
+func (r GetRunStepsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetRunStepsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetRunStepsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetRunStepsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetSettingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Settings
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetSettingsResponse) GetJSON200() *Settings {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetSettingsResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r GetSettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetSettingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetSettingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetSettingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateSettingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Settings
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateSettingsResponse) GetJSON200() *Settings {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r UpdateSettingsResponse) GetJSON400() *BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r UpdateSettingsResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateSettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateSettingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateSettingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateSettingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListUnhealthyStepsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *UnhealthyStepsList
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListUnhealthyStepsResponse) GetJSON200() *UnhealthyStepsList {
 	return r.JSON200
 }
 
@@ -2946,6 +5600,81 @@ func (r GithubWebhookResponse) ContentType() string {
 	return ""
 }
 
+// ListCredentialsWithResponse List the account's registered credentials
+//
+// Session-only, same reasoning as addCredentialOptions.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/auth/credentials (the `ListCredentials` operationId).
+func (c *ClientWithResponses) ListCredentialsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListCredentialsResponse, error) {
+	rsp, err := c.ListCredentials(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListCredentialsResponse(rsp)
+}
+
+// AddCredentialWithBodyWithResponse Complete the "add another passkey" ceremony
+//
+// Session-only, same reasoning as addCredentialOptions.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/auth/credentials (the `AddCredential` operationId).
+func (c *ClientWithResponses) AddCredentialWithBodyWithResponse(ctx context.Context, params *AddCredentialParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddCredentialResponse, error) {
+	rsp, err := c.AddCredentialWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddCredentialResponse(rsp)
+}
+
+// AddCredentialWithResponse Complete the "add another passkey" ceremony
+//
+// Session-only, same reasoning as addCredentialOptions.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/auth/credentials (the `AddCredential` operationId).
+func (c *ClientWithResponses) AddCredentialWithResponse(ctx context.Context, params *AddCredentialParams, body AddCredentialJSONRequestBody, reqEditors ...RequestEditorFn) (*AddCredentialResponse, error) {
+	rsp, err := c.AddCredential(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddCredentialResponse(rsp)
+}
+
+// AddCredentialOptionsWithResponse Begin an authenticated "add another passkey" ceremony
+//
+// Session-only -- an API token can't enroll another credential on the account any more than it can mint another token. Distinct from POST /api/auth/register/options: that ceremony is the anonymous first-run registration and only ever runs once per account; this one runs from within an existing session and excludes credentials already registered to it.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/auth/credentials/options (the `AddCredentialOptions` operationId).
+func (c *ClientWithResponses) AddCredentialOptionsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*AddCredentialOptionsResponse, error) {
+	rsp, err := c.AddCredentialOptions(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddCredentialOptionsResponse(rsp)
+}
+
+// RevokeCredentialWithResponse Revoke a credential
+//
+// Session-only, same reasoning as addCredentialOptions. Rejected with 409 if credentialId is the account's last remaining credential -- revoking it would leave the account with no way to log in.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /api/auth/credentials/{credentialId} (the `RevokeCredential` operationId).
+func (c *ClientWithResponses) RevokeCredentialWithResponse(ctx context.Context, credentialId string, reqEditors ...RequestEditorFn) (*RevokeCredentialResponse, error) {
+	rsp, err := c.RevokeCredential(ctx, credentialId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRevokeCredentialResponse(rsp)
+}
+
 // WebauthnLoginWithBodyWithResponse Complete WebAuthn login
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
@@ -3037,6 +5766,51 @@ func (c *ClientWithResponses) WebauthnRegisterOptionsWithResponse(ctx context.Co
 	return ParseWebauthnRegisterOptionsResponse(rsp)
 }
 
+// IssueApiTokenWithResponse Issue a new API token
+//
+// Session-only -- an API token can't be used to issue another one. The raw token value is returned once, here, and is never recoverable afterward.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/auth/tokens (the `IssueApiToken` operationId).
+func (c *ClientWithResponses) IssueApiTokenWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*IssueApiTokenResponse, error) {
+	rsp, err := c.IssueApiToken(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseIssueApiTokenResponse(rsp)
+}
+
+// RevokeApiTokenWithResponse Revoke an API token
+//
+// Session-only, same reasoning as issuing one.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /api/auth/tokens/{tokenId} (the `RevokeApiToken` operationId).
+func (c *ClientWithResponses) RevokeApiTokenWithResponse(ctx context.Context, tokenId string, reqEditors ...RequestEditorFn) (*RevokeApiTokenResponse, error) {
+	rsp, err := c.RevokeApiToken(ctx, tokenId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRevokeApiTokenResponse(rsp)
+}
+
+// GetFailureInsightsWithResponse Failure aggregates over a window -- pass rate, MTTR, failure distribution, root-cause groups
+//
+// Backs the failure overview and root-cause views. "Stage" means step: forges expose workflows, jobs and steps but no stage taxonomy, so the distribution and the groups are by failing step name. `passRateDelta` compares against the preceding window of equal length. Failure categories are heuristic (step conclusion and name), never log-derived; a failure no rule matches is `uncategorised`.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/insights/failures (the `GetFailureInsights` operationId).
+func (c *ClientWithResponses) GetFailureInsightsWithResponse(ctx context.Context, params *GetFailureInsightsParams, reqEditors ...RequestEditorFn) (*GetFailureInsightsResponse, error) {
+	rsp, err := c.GetFailureInsights(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetFailureInsightsResponse(rsp)
+}
+
 // GetGitHubRateLimitInsightsWithResponse GitHub REST API rate-limit usage, grouped by token
 //
 // One entry per distinct GitHub token this app holds (not per repo -- the same token often tracks more than one repo), with the repos it covers and the token's most recently observed rate-limit status. That status is read from a real API response's X-RateLimit-* headers rather than a dedicated poll, per GitHub's own guidance (docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api) -- `status` is absent until a request has actually been made with that token (reconciliation polling, or webhook/discovery calls).
@@ -3052,13 +5826,43 @@ func (c *ClientWithResponses) GetGitHubRateLimitInsightsWithResponse(ctx context
 	return ParseGetGitHubRateLimitInsightsResponse(rsp)
 }
 
-// ListPipelinesWithResponse Overview of every tracked pipeline and its health status
+// McpEndpointWithBodyWithResponse MCP server (Streamable HTTP transport)
+//
+// Serves an MCP server over the Streamable HTTP transport (mcp-endpoint/spec.md), exposing the same pipeline health, trend, flaky-step, and usage data as read-only MCP tools. The request and response bodies are MCP's own JSON-RPC 2.0 envelope, not a REST payload -- this entry documents the endpoint for discoverability and auth, not for REST client generation.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/mcp (the `McpEndpoint` operationId).
+func (c *ClientWithResponses) McpEndpointWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*McpEndpointResponse, error) {
+	rsp, err := c.McpEndpointWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMcpEndpointResponse(rsp)
+}
+
+// McpEndpointWithResponse MCP server (Streamable HTTP transport)
+//
+// Serves an MCP server over the Streamable HTTP transport (mcp-endpoint/spec.md), exposing the same pipeline health, trend, flaky-step, and usage data as read-only MCP tools. The request and response bodies are MCP's own JSON-RPC 2.0 envelope, not a REST payload -- this entry documents the endpoint for discoverability and auth, not for REST client generation.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/mcp (the `McpEndpoint` operationId).
+func (c *ClientWithResponses) McpEndpointWithResponse(ctx context.Context, body McpEndpointJSONRequestBody, reqEditors ...RequestEditorFn) (*McpEndpointResponse, error) {
+	rsp, err := c.McpEndpoint(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMcpEndpointResponse(rsp)
+}
+
+// ListPipelinesWithResponse A page of tracked pipelines and their health status
 //
 // Returns a wrapper object for the known response body format(s).
 //
 // Corresponds with GET /api/pipelines (the `ListPipelines` operationId).
-func (c *ClientWithResponses) ListPipelinesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListPipelinesResponse, error) {
-	rsp, err := c.ListPipelines(ctx, reqEditors...)
+func (c *ClientWithResponses) ListPipelinesWithResponse(ctx context.Context, params *ListPipelinesParams, reqEditors ...RequestEditorFn) (*ListPipelinesResponse, error) {
+	rsp, err := c.ListPipelines(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -3076,6 +5880,21 @@ func (c *ClientWithResponses) GetPipelineWithResponse(ctx context.Context, pipel
 		return nil, err
 	}
 	return ParseGetPipelineResponse(rsp)
+}
+
+// ListFlakyRunsWithResponse Every run in which one named step failed, most-recent-first
+//
+// The step-scoped drill-down from a flaky (or previously flaky) step in GET .../steps -- lets a click land on the run that actually failed instead of an aggregate link that may point at a run which has since passed. Available regardless of the pipeline's current health status, since a step's failures can age out of the live window before anyone gets a chance to look.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/pipelines/{pipelineId}/flaky-runs (the `ListFlakyRuns` operationId).
+func (c *ClientWithResponses) ListFlakyRunsWithResponse(ctx context.Context, pipelineId PipelineId, params *ListFlakyRunsParams, reqEditors ...RequestEditorFn) (*ListFlakyRunsResponse, error) {
+	rsp, err := c.ListFlakyRuns(ctx, pipelineId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListFlakyRunsResponse(rsp)
 }
 
 // GetPipelineStepsWithResponse Step breakdown -- duration ranking, queue/exec split, failure rate, flaky flag
@@ -3164,6 +5983,21 @@ func (c *ClientWithResponses) DiscoverReposWithResponse(ctx context.Context, bod
 	return ParseDiscoverReposResponse(rsp)
 }
 
+// ListRepoIdentifiersWithResponse List every tracked identifier for a forge, unpaginated
+//
+// Backs Discover's "already tracked" check, which needs to see every tracked repo regardless of how many are tracked, not just whatever page a paginated GET /api/repos happens to be showing (see forge-ingestion/spec.md's "Repo tracking registration").
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/repos/identifiers (the `ListRepoIdentifiers` operationId).
+func (c *ClientWithResponses) ListRepoIdentifiersWithResponse(ctx context.Context, params *ListRepoIdentifiersParams, reqEditors ...RequestEditorFn) (*ListRepoIdentifiersResponse, error) {
+	rsp, err := c.ListRepoIdentifiers(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListRepoIdentifiersResponse(rsp)
+}
+
 // UntrackRepoWithResponse Stop tracking a repository
 //
 // Removes the repo and cascades to its stored runs, jobs, and steps. Does not attempt to delete the webhook created on the forge at registration time.
@@ -3192,7 +6026,80 @@ func (c *ClientWithResponses) GetRepoUsageWithResponse(ctx context.Context, repo
 	return ParseGetRepoUsageResponse(rsp)
 }
 
-// ListUnhealthyStepsWithResponse Every flaky or failing step across every tracked pipeline, grouped by pipeline
+// ListRunsWithResponse A page of runs, newest first, each with its steps for a stage progression bar
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/runs (the `ListRuns` operationId).
+func (c *ClientWithResponses) ListRunsWithResponse(ctx context.Context, params *ListRunsParams, reqEditors ...RequestEditorFn) (*ListRunsResponse, error) {
+	rsp, err := c.ListRuns(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListRunsResponse(rsp)
+}
+
+// GetRunStepsWithResponse One run's own steps and their statuses
+//
+// What a flaky run in GET .../flaky-runs drills down into -- scoped to a single run, so each step's forgeUrl points at the exact job that ran, never a different occurrence of the same step name.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/runs/{runId}/steps (the `GetRunSteps` operationId).
+func (c *ClientWithResponses) GetRunStepsWithResponse(ctx context.Context, runId RunId, reqEditors ...RequestEditorFn) (*GetRunStepsResponse, error) {
+	rsp, err := c.GetRunSteps(ctx, runId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetRunStepsResponse(rsp)
+}
+
+// GetSettingsWithResponse The dashboard account's persisted UI settings
+//
+// Every setting is always present in the response, each one either an explicitly-stored value or its documented default -- never null or missing.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/settings (the `GetSettings` operationId).
+func (c *ClientWithResponses) GetSettingsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetSettingsResponse, error) {
+	rsp, err := c.GetSettings(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetSettingsResponse(rsp)
+}
+
+// UpdateSettingsWithBodyWithResponse Update one or more settings
+//
+// A key present with a value sets it. A key present with JSON null clears it, reverting to its documented default on the next read -- this is also how the Pipelines page's "Reset filters" works: a single PATCH setting pipelinesHealthFilter/pipelinesRepoSelector/pipelinesSortOrder to null. A key absent from the body is left untouched. An invalid key or an enum value outside its documented set rejects the whole request; nothing already stored changes.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PATCH /api/settings (the `UpdateSettings` operationId).
+func (c *ClientWithResponses) UpdateSettingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateSettingsResponse, error) {
+	rsp, err := c.UpdateSettingsWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateSettingsResponse(rsp)
+}
+
+// UpdateSettingsWithResponse Update one or more settings
+//
+// A key present with a value sets it. A key present with JSON null clears it, reverting to its documented default on the next read -- this is also how the Pipelines page's "Reset filters" works: a single PATCH setting pipelinesHealthFilter/pipelinesRepoSelector/pipelinesSortOrder to null. A key absent from the body is left untouched. An invalid key or an enum value outside its documented set rejects the whole request; nothing already stored changes.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PATCH /api/settings (the `UpdateSettings` operationId).
+func (c *ClientWithResponses) UpdateSettingsWithResponse(ctx context.Context, body UpdateSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSettingsResponse, error) {
+	rsp, err := c.UpdateSettings(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateSettingsResponse(rsp)
+}
+
+// ListUnhealthyStepsWithResponse A page of pipelines with a flaky or failing step, grouped by pipeline
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -3270,6 +6177,171 @@ func (c *ClientWithResponses) GithubWebhookWithResponse(ctx context.Context, par
 		return nil, err
 	}
 	return ParseGithubWebhookResponse(rsp)
+}
+
+// ParseListCredentialsResponse parses an HTTP response from a ListCredentialsWithResponse call
+func ParseListCredentialsResponse(rsp *http.Response) (*ListCredentialsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListCredentialsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []Credential
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAddCredentialResponse parses an HTTP response from a AddCredentialWithResponse call
+func ParseAddCredentialResponse(rsp *http.Response) (*AddCredentialResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddCredentialResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 201:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAddCredentialOptionsResponse parses an HTTP response from a AddCredentialOptionsWithResponse call
+func ParseAddCredentialOptionsResponse(rsp *http.Response) (*AddCredentialOptionsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddCredentialOptionsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WebAuthnCreationOptions
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		var headers AddCredentialOptionsResponse200Headers
+		if values := rsp.Header.Values("Set-Cookie"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Set-Cookie", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.SetCookie = &value
+		}
+		response.Headers200 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseRevokeCredentialResponse parses an HTTP response from a RevokeCredentialWithResponse call
+func ParseRevokeCredentialResponse(rsp *http.Response) (*RevokeCredentialResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RevokeCredentialResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseWebauthnLoginResponse parses an HTTP response from a WebauthnLoginWithResponse call
@@ -3484,6 +6556,108 @@ func ParseWebauthnRegisterOptionsResponse(rsp *http.Response) (*WebauthnRegister
 	return response, nil
 }
 
+// ParseIssueApiTokenResponse parses an HTTP response from a IssueApiTokenWithResponse call
+func ParseIssueApiTokenResponse(rsp *http.Response) (*IssueApiTokenResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &IssueApiTokenResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest ApiToken
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRevokeApiTokenResponse parses an HTTP response from a RevokeApiTokenWithResponse call
+func ParseRevokeApiTokenResponse(rsp *http.Response) (*RevokeApiTokenResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RevokeApiTokenResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetFailureInsightsResponse parses an HTTP response from a GetFailureInsightsWithResponse call
+func ParseGetFailureInsightsResponse(rsp *http.Response) (*GetFailureInsightsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetFailureInsightsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FailureInsights
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetGitHubRateLimitInsightsResponse parses an HTTP response from a GetGitHubRateLimitInsightsWithResponse call
 func ParseGetGitHubRateLimitInsightsResponse(rsp *http.Response) (*GetGitHubRateLimitInsightsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -3517,6 +6691,42 @@ func ParseGetGitHubRateLimitInsightsResponse(rsp *http.Response) (*GetGitHubRate
 	return response, nil
 }
 
+// ParseMcpEndpointResponse parses an HTTP response from a McpEndpointWithResponse call
+func ParseMcpEndpointResponse(rsp *http.Response) (*McpEndpointResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &McpEndpointResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest map[string]interface{}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/event-stream) unsupported
+
+	}
+
+	return response, nil
+}
+
 // ParseListPipelinesResponse parses an HTTP response from a ListPipelinesWithResponse call
 func ParseListPipelinesResponse(rsp *http.Response) (*ListPipelinesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -3532,7 +6742,7 @@ func ParseListPipelinesResponse(rsp *http.Response) (*ListPipelinesResponse, err
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []PipelineSummary
+		var dest PipelineList
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -3566,6 +6776,46 @@ func ParseGetPipelineResponse(rsp *http.Response) (*GetPipelineResponse, error) 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest PipelineDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListFlakyRunsResponse parses an HTTP response from a ListFlakyRunsWithResponse call
+func ParseListFlakyRunsResponse(rsp *http.Response) (*ListFlakyRunsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListFlakyRunsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []FlakyRun
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -3698,6 +6948,13 @@ func ParseRegisterRepoResponse(rsp *http.Response) (*RegisterRepoResponse, error
 		}
 		response.JSON401 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Conflict
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
 	}
 
 	return response, nil
@@ -3744,6 +7001,48 @@ func ParseDiscoverReposResponse(rsp *http.Response) (*DiscoverReposResponse, err
 			return nil, err
 		}
 		response.JSON502 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListRepoIdentifiersResponse parses an HTTP response from a ListRepoIdentifiersWithResponse call
+func ParseListRepoIdentifiersResponse(rsp *http.Response) (*ListRepoIdentifiersResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListRepoIdentifiersResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			Identifiers []string `json:"identifiers"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
 
 	}
 
@@ -3826,6 +7125,159 @@ func ParseGetRepoUsageResponse(rsp *http.Response) (*GetRepoUsageResponse, error
 	return response, nil
 }
 
+// ParseListRunsResponse parses an HTTP response from a ListRunsWithResponse call
+func ParseListRunsResponse(rsp *http.Response) (*ListRunsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListRunsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RunList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetRunStepsResponse parses an HTTP response from a GetRunStepsWithResponse call
+func ParseGetRunStepsResponse(rsp *http.Response) (*GetRunStepsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetRunStepsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RunDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetSettingsResponse parses an HTTP response from a GetSettingsWithResponse call
+func ParseGetSettingsResponse(rsp *http.Response) (*GetSettingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetSettingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Settings
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateSettingsResponse parses an HTTP response from a UpdateSettingsWithResponse call
+func ParseUpdateSettingsResponse(rsp *http.Response) (*UpdateSettingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateSettingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Settings
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListUnhealthyStepsResponse parses an HTTP response from a ListUnhealthyStepsWithResponse call
 func ParseListUnhealthyStepsResponse(rsp *http.Response) (*ListUnhealthyStepsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -3841,7 +7293,7 @@ func ParseListUnhealthyStepsResponse(rsp *http.Response) (*ListUnhealthyStepsRes
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []PipelineStepsGroup
+		var dest UnhealthyStepsList
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

@@ -5,7 +5,9 @@ info:
   description: >
     Self-hosted CI pipeline analytics for GitHub Actions and Forgejo Actions.
     Every endpoint except the WebAuthn ceremony and the forge webhook
-    receivers requires an authenticated session (see dashboard-auth/spec.md).
+    receivers requires an authenticated session or a bearer API token (see
+    dashboard-auth/spec.md); token issuance and revocation require a
+    session specifically.
   license:
     name: AGPL-3.0
     identifier: AGPL-3.0-only
@@ -14,6 +16,7 @@ servers:
 
 security:
   - sessionCookie: []
+  - apiKey: []
 
 paths:
   /api/version:
@@ -32,6 +35,42 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Version"
+
+  /api/mcp:
+    post:
+      operationId: mcpEndpoint
+      summary: MCP server (Streamable HTTP transport)
+      description: >
+        Serves an MCP server over the Streamable HTTP transport
+        (mcp-endpoint/spec.md), exposing the same pipeline health,
+        trend, flaky-step, and usage data as read-only MCP tools. The
+        request and response bodies are MCP's own JSON-RPC 2.0
+        envelope, not a REST payload -- this entry documents the
+        endpoint for discoverability and auth, not for REST client
+        generation.
+      tags: [mcp]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: An MCP JSON-RPC 2.0 request or notification.
+      responses:
+        "200":
+          description: >
+            An MCP JSON-RPC 2.0 response, or an event stream of them
+            (text/event-stream) per the Streamable HTTP transport.
+          content:
+            application/json:
+              schema:
+                type: object
+                description: An MCP JSON-RPC 2.0 response.
+            text/event-stream:
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /api/repos:
     get:
@@ -72,6 +111,49 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Repo"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /api/repos/identifiers:
+    get:
+      operationId: listRepoIdentifiers
+      summary: List every tracked identifier for a forge, unpaginated
+      description: >
+        Backs Discover's "already tracked" check, which needs to see every
+        tracked repo regardless of how many are tracked, not just whatever
+        page a paginated GET /api/repos happens to be showing (see
+        forge-ingestion/spec.md's "Repo tracking registration").
+      tags: [repos]
+      parameters:
+        - name: forge
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/Forge"
+        - name: forgejoInstanceUrl
+          in: query
+          required: false
+          description: Restricts to one Forgejo instance. Ignored for GitHub.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Every tracked identifier matching forge (+ instance, for Forgejo)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [identifiers]
+                properties:
+                  identifiers:
+                    type: array
+                    items:
+                      type: string
+                    example: ["alrayyes/pipeline-analytics"]
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -153,17 +235,21 @@ paths:
   /api/pipelines:
     get:
       operationId: listPipelines
-      summary: Overview of every tracked pipeline and its health status
+      summary: A page of tracked pipelines and their health status
       tags: [pipelines]
+      parameters:
+        - $ref: "#/components/parameters/PipelineRepoIdFilter"
+        - $ref: "#/components/parameters/RepoForgeFilter"
+        - $ref: "#/components/parameters/Window"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
       responses:
         "200":
-          description: Pipeline overview
+          description: A page of tracked pipelines, ordered by (repoId, name)
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/PipelineSummary"
+                $ref: "#/components/schemas/PipelineList"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -211,6 +297,61 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /api/pipelines/{pipelineId}/flaky-runs:
+    get:
+      operationId: listFlakyRuns
+      summary: Every run in which one named step failed, most-recent-first
+      description: >
+        The step-scoped drill-down from a flaky (or previously flaky) step
+        in GET .../steps -- lets a click land on the run that actually
+        failed instead of an aggregate link that may point at a run which
+        has since passed. Available regardless of the pipeline's current
+        health status, since a step's failures can age out of the live
+        window before anyone gets a chance to look.
+      tags: [pipelines]
+      parameters:
+        - $ref: "#/components/parameters/PipelineId"
+        - $ref: "#/components/parameters/StepName"
+        - $ref: "#/components/parameters/Window"
+      responses:
+        "200":
+          description: >
+            Runs in which the named step failed, most-recent-first. Empty
+            when the step has no failed occurrence in the window.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FlakyRun"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/runs/{runId}/steps:
+    get:
+      operationId: getRunSteps
+      summary: One run's own steps and their statuses
+      description: >
+        What a flaky run in GET .../flaky-runs drills down into -- scoped
+        to a single run, so each step's forgeUrl points at the exact job
+        that ran, never a different occurrence of the same step name.
+      tags: [pipelines]
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      responses:
+        "200":
+          description: The run's steps, in recorded order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /api/insights/github-rate-limit:
     get:
       operationId: getGitHubRateLimitInsights
@@ -240,21 +381,121 @@ paths:
   /api/steps/unhealthy:
     get:
       operationId: listUnhealthySteps
-      summary: Every flaky or failing step across every tracked pipeline, grouped by pipeline
+      summary: A page of pipelines with a flaky or failing step, grouped by pipeline
       tags: [pipelines]
       parameters:
         - $ref: "#/components/parameters/Window"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
       responses:
         "200":
           description: >
-            One entry per pipeline with at least one flaky or failing step; a
+            A page of pipeline groups, ordered by (repoId, pipelineName), one
+            entry per pipeline with at least one flaky or failing step; a
             fully healthy pipeline contributes nothing.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/PipelineStepsGroup"
+                $ref: "#/components/schemas/UnhealthyStepsList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/insights/failures:
+    get:
+      operationId: getFailureInsights
+      summary: Failure aggregates over a window -- pass rate, MTTR, failure distribution, root-cause groups
+      description: >
+        Backs the failure overview and root-cause views. "Stage" means
+        step: forges expose workflows, jobs and steps but no stage
+        taxonomy, so the distribution and the groups are by failing step
+        name. `passRateDelta` compares against the preceding window of
+        equal length. Failure categories are heuristic (step conclusion
+        and name), never log-derived; a failure no rule matches is
+        `uncategorised`.
+      tags: [insights]
+      parameters:
+        - $ref: "#/components/parameters/PipelineRepoIdFilter"
+        - $ref: "#/components/parameters/RepoForgeFilter"
+        - $ref: "#/components/parameters/Window"
+      responses:
+        "200":
+          description: Failure insights for the window
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailureInsights"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/runs:
+    get:
+      operationId: listRuns
+      summary: A page of runs, newest first, each with its steps for a stage progression bar
+      tags: [pipelines]
+      parameters:
+        - $ref: "#/components/parameters/PipelineRepoIdFilter"
+        - $ref: "#/components/parameters/RepoForgeFilter"
+        - $ref: "#/components/parameters/RunStatusFilter"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: A page of runs ordered by start time, newest first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/settings:
+    get:
+      operationId: getSettings
+      summary: The dashboard account's persisted UI settings
+      description: >
+        Every setting is always present in the response, each one either
+        an explicitly-stored value or its documented default -- never
+        null or missing.
+      tags: [settings]
+      responses:
+        "200":
+          description: Every setting, fully resolved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      operationId: updateSettings
+      summary: Update one or more settings
+      description: >
+        A key present with a value sets it. A key present with JSON
+        null clears it, reverting to its documented default on the
+        next read -- this is also how the Pipelines page's "Reset
+        filters" works: a single PATCH setting
+        pipelinesHealthFilter/pipelinesRepoSelector/pipelinesSortOrder
+        to null. A key absent from the body is left untouched. An
+        invalid key or an enum value outside its documented set
+        rejects the whole request; nothing already stored changes.
+      tags: [settings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingsUpdate"
+      responses:
+        "200":
+          description: Every setting, fully resolved, after applying the update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -379,6 +620,165 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /api/auth/tokens:
+    post:
+      operationId: issueApiToken
+      summary: Issue a new API token
+      description: >
+        Session-only -- an API token can't be used to issue another one.
+        The raw token value is returned once, here, and is never
+        recoverable afterward.
+      tags: [auth]
+      security:
+        - sessionCookie: []
+      responses:
+        "201":
+          description: Token issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiToken"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/auth/tokens/{tokenId}:
+    delete:
+      operationId: revokeApiToken
+      summary: Revoke an API token
+      description: Session-only, same reasoning as issuing one.
+      tags: [auth]
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: tokenId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Token revoked
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/auth/credentials/options:
+    post:
+      operationId: addCredentialOptions
+      summary: Begin an authenticated "add another passkey" ceremony
+      description: >
+        Session-only -- an API token can't enroll another credential on the
+        account any more than it can mint another token. Distinct from
+        POST /api/auth/register/options: that ceremony is the anonymous
+        first-run registration and only ever runs once per account; this
+        one runs from within an existing session and excludes credentials
+        already registered to it.
+      tags: [auth]
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: >
+            WebAuthn PublicKeyCredentialCreationOptions. The Set-Cookie header
+            carries an opaque, server-side ceremony reference (not the
+            session itself) that the subsequent POST /api/auth/credentials
+            call must present back to complete the ceremony it belongs to.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebAuthnCreationOptions"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/auth/credentials:
+    get:
+      operationId: listCredentials
+      summary: List the account's registered credentials
+      description: Session-only, same reasoning as addCredentialOptions.
+      tags: [auth]
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Every credential registered to the account
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Credential"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: addCredential
+      summary: Complete the "add another passkey" ceremony
+      description: Session-only, same reasoning as addCredentialOptions.
+      tags: [auth]
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: label
+          in: query
+          required: false
+          description: >
+            A caller-supplied name for the new credential (e.g. "MacBook",
+            "iPhone"), shown in the credential list. Defaults to an empty
+            label if omitted.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebAuthnAttestationResponse"
+      responses:
+        "201":
+          description: Credential added
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/auth/credentials/{credentialId}:
+    delete:
+      operationId: revokeCredential
+      summary: Revoke a credential
+      description: >
+        Session-only, same reasoning as addCredentialOptions. Rejected with
+        409 if credentialId is the account's last remaining credential --
+        revoking it would leave the account with no way to log in.
+      tags: [auth]
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: credentialId
+          in: path
+          required: true
+          description: The credential's id, base64url-encoded.
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Credential revoked
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: credentialId is the account's last remaining credential
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /webhooks/github:
     post:
       operationId: githubWebhook
@@ -455,6 +855,13 @@ components:
       type: apiKey
       in: cookie
       name: session
+    apiKey:
+      type: http
+      scheme: bearer
+      description: >
+        A long-lived, revocable token from POST /api/auth/tokens.
+        Authenticates the same way sessionCookie does for every endpoint
+        except token issuance/revocation, which are session-only.
 
   parameters:
     RepoId:
@@ -467,6 +874,19 @@ components:
       name: pipelineId
       in: path
       required: true
+      schema:
+        type: string
+    RunId:
+      name: runId
+      in: path
+      required: true
+      schema:
+        type: string
+    StepName:
+      name: step
+      in: query
+      required: true
+      description: A step's name, exactly as GET .../steps reports it.
       schema:
         type: string
     Window:
@@ -483,6 +903,13 @@ components:
       description: Restrict the list to one forge. Omitted returns every forge.
       schema:
         $ref: "#/components/schemas/Forge"
+    PipelineRepoIdFilter:
+      name: repoId
+      in: query
+      required: false
+      description: Restrict the list to one tracked repo. Omitted returns every repo's pipelines.
+      schema:
+        type: string
     Limit:
       name: limit
       in: query
@@ -500,6 +927,18 @@ components:
         type: integer
         minimum: 0
         default: 0
+    RunStatusFilter:
+      name: status
+      in: query
+      required: false
+      description: >
+        Restrict runs to one status bucket. `failed` is a concluded
+        failure, `running` is queued or in progress, `success` is a
+        concluded success. Omitted or `all` returns every run.
+      schema:
+        type: string
+        enum: [all, failed, running, success]
+        default: all
 
   responses:
     BadRequest:
@@ -509,7 +948,7 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
     Unauthorized:
-      description: No valid session
+      description: No valid session or API token
       content:
         application/json:
           schema:
@@ -522,6 +961,12 @@ components:
             $ref: "#/components/schemas/Error"
     BadGateway:
       description: The originating forge rejected the request or couldn't be reached
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Conflict:
+      description: A resource with that identity already exists
       content:
         application/json:
           schema:
@@ -543,7 +988,100 @@ components:
       properties:
         version:
           type: string
-          description: "The build's tagged version (e.g. \"v1.2.3\"), or \"dev\" for an untagged local build."
+          description: 'The build''s tagged version (e.g. "v1.2.3"), or "dev" for an untagged local build.'
+
+    Settings:
+      type: object
+      required:
+        [
+          theme,
+          forgeFilter,
+          pipelinesHealthFilter,
+          pipelinesRepoSelector,
+          pipelinesSortOrder,
+        ]
+      properties:
+        theme:
+          type: string
+          enum: [light, dark, system]
+        forgeFilter:
+          type: string
+          enum: [all, github, forgejo]
+        pipelinesHealthFilter:
+          type: string
+          enum: [all, healthy, unhealthy]
+        pipelinesRepoSelector:
+          type: string
+          description: >
+            A tracked repo's id, or "all" for every repo -- not
+            validated against an enum, since the set of valid values
+            changes with what's currently tracked.
+        pipelinesSortOrder:
+          type: string
+          enum: [name, lastRun]
+
+    SettingsUpdate:
+      type: object
+      description: >
+        Every property is optional; an absent one is left untouched. A
+        property set to null clears it back to its documented default
+        instead of setting it.
+      properties:
+        theme:
+          type: [string, "null"]
+          enum: [light, dark, system, null]
+        forgeFilter:
+          type: [string, "null"]
+          enum: [all, github, forgejo, null]
+        pipelinesHealthFilter:
+          type: [string, "null"]
+          enum: [all, healthy, unhealthy, null]
+        pipelinesRepoSelector:
+          type: [string, "null"]
+        pipelinesSortOrder:
+          type: [string, "null"]
+          enum: [name, lastRun, null]
+
+    ApiToken:
+      type: object
+      required: [id, token, createdAt, expiresAt]
+      properties:
+        id:
+          type: string
+          description: >
+            Identifies the token for revocation (DELETE
+            /api/auth/tokens/{tokenId}) -- not itself a usable credential.
+        token:
+          type: string
+          description: >
+            The raw token value. Returned only here, at creation; store it
+            now, it can't be retrieved again.
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+
+    Credential:
+      type: object
+      required: [id, label, createdAt]
+      properties:
+        id:
+          type: string
+          description: >
+            The credential's id, base64url-encoded -- identifies it for
+            revocation (DELETE /api/auth/credentials/{credentialId}), not a
+            usable credential itself.
+        label:
+          type: string
+          description: >
+            A caller-supplied name (e.g. "MacBook", "iPhone"), set once at
+            enrollment. Empty for a credential added before this existed, or
+            for the account's original anonymous-registration credential.
+        createdAt:
+          type: string
+          format: date-time
 
     Forge:
       type: string
@@ -570,7 +1108,7 @@ components:
           description: Set only when forge is forgejo.
         tokenMasked:
           type: string
-          description: "The stored token's display form, e.g. \"****1234\" (forge-ingestion/spec.md's \"Credential storage\" -- never the full value)."
+          description: 'The stored token''s display form, e.g. "****1234" (forge-ingestion/spec.md''s "Credential storage" -- never the full value).'
         ingestionStatus:
           $ref: "#/components/schemas/IngestionStatus"
         ingestionStatusReason:
@@ -644,6 +1182,18 @@ components:
           format: date-time
           description: The most recent run's start time. Absent if the pipeline has no runs.
 
+    PipelineList:
+      type: object
+      required: [pipelines, hasMore]
+      properties:
+        pipelines:
+          type: array
+          items:
+            $ref: "#/components/schemas/PipelineSummary"
+        hasMore:
+          type: boolean
+          description: True when pipelines beyond this page match the filter. Always false when limit was omitted.
+
     Trend:
       type: object
       required: [timestamps]
@@ -681,7 +1231,17 @@ components:
 
     Step:
       type: object
-      required: [id, name, durationContributionSeconds, queueSeconds, execSeconds, failureRate, flaky]
+      required:
+        [
+          id,
+          name,
+          durationContributionSeconds,
+          queueSeconds,
+          execSeconds,
+          failureRate,
+          failureCount,
+          flaky,
+        ]
       properties:
         id:
           type: string
@@ -695,12 +1255,19 @@ components:
           type: number
         failureRate:
           type: number
+        failureCount:
+          type: integer
+          description: Times this step failed within the window.
         flaky:
           type: boolean
         forgeUrl:
           type: string
           format: uri
-          description: Deep link to this step's log on the originating forge.
+          description: >
+            Deep link to one occurrence's log on the originating forge --
+            not necessarily one where the step failed. GET
+            .../flaky-runs is the reliable way to reach a run the step
+            actually failed on.
 
     PipelineStepsGroup:
       type: object
@@ -716,6 +1283,224 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Step"
+
+    UnhealthyStepsList:
+      type: object
+      required: [groups, hasMore]
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/PipelineStepsGroup"
+        hasMore:
+          type: boolean
+          description: True when pipeline groups beyond this page have an unhealthy step. Always false when limit was omitted.
+
+    FlakyRun:
+      type: object
+      required: [runId, forgeUrl]
+      properties:
+        runId:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        forgeUrl:
+          type: string
+          format: uri
+          description: Deep link to the job this step failed in, on this specific run.
+
+    RunStep:
+      type: object
+      required: [name, status]
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+        conclusion:
+          type: string
+        forgeUrl:
+          type: string
+          format: uri
+          description: Deep link to this exact occurrence's job on the originating forge.
+
+    RunDetail:
+      type: object
+      required: [runId, steps]
+      properties:
+        runId:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/RunStep"
+
+    RunSummary:
+      type: object
+      required: [id, pipelineId, pipelineName, repoId, status, steps]
+      properties:
+        id:
+          type: string
+        pipelineId:
+          type: string
+        pipelineName:
+          type: string
+        repoId:
+          type: string
+        status:
+          type: string
+          description: The forge's run status, as recorded.
+        conclusion:
+          type: string
+          description: Absent until the run concludes.
+        startedAt:
+          type: string
+          format: date-time
+        durationSeconds:
+          type: number
+          description: Absent while the run is still going or has no recorded end.
+        branch:
+          type: string
+          description: Absent on runs ingested before commit metadata was recorded.
+        sha:
+          type: string
+          description: Head commit SHA. Absent where the forge or an older row lacks it.
+        message:
+          type: string
+          description: First line of the head commit message.
+        actor:
+          type: string
+          description: The triggering user or bot.
+        forgeUrl:
+          type: string
+          format: uri
+          description: Deep link to the run on the originating forge.
+        steps:
+          type: array
+          description: The run's steps in recorded order.
+          items:
+            $ref: "#/components/schemas/RunStep"
+
+    RunList:
+      type: object
+      required: [runs, hasMore]
+      properties:
+        runs:
+          type: array
+          items:
+            $ref: "#/components/schemas/RunSummary"
+        hasMore:
+          type: boolean
+          description: True when runs beyond this page match the filter. Always false when limit was omitted.
+
+    FailureCategory:
+      type: string
+      enum:
+        [
+          infrastructure,
+          code_tests,
+          network_timeouts,
+          config_secrets,
+          uncategorised,
+        ]
+
+    StageFailureCount:
+      type: object
+      required: [step, failures]
+      properties:
+        step:
+          type: string
+        failures:
+          type: integer
+
+    FailingPipeline:
+      type: object
+      required: [pipelineId, pipelineName, repoId, runs, failedRuns]
+      properties:
+        pipelineId:
+          type: string
+        pipelineName:
+          type: string
+        repoId:
+          type: string
+        runs:
+          type: integer
+        failedRuns:
+          type: integer
+
+    FailureGroup:
+      type: object
+      required: [step, category, occurrences, pipelines]
+      properties:
+        step:
+          type: string
+        category:
+          $ref: "#/components/schemas/FailureCategory"
+        conclusion:
+          type: string
+          description: The most common step conclusion in the group, shown so a heuristic category can be checked.
+        occurrences:
+          type: integer
+        pipelines:
+          type: array
+          description: Pipelines the step failed in, each reachable via GET .../flaky-runs.
+          items:
+            type: object
+            required: [pipelineId, pipelineName]
+            properties:
+              pipelineId:
+                type: string
+              pipelineName:
+                type: string
+
+    FailureInsights:
+      type: object
+      required:
+        [
+          totalRuns,
+          failedRuns,
+          passRate,
+          flakyStepRatio,
+          stageDistribution,
+          topFailingPipelines,
+          failureGroups,
+        ]
+      properties:
+        totalRuns:
+          type: integer
+        failedRuns:
+          type: integer
+        passRate:
+          type: number
+          description: Fraction in [0, 1] of concluded runs that succeeded.
+        passRateDelta:
+          type: number
+          description: Percentage points versus the preceding window of equal length. Absent when that window had no runs.
+        flakyStepRatio:
+          type: number
+          description: Fraction in [0, 1] of distinct steps flagged flaky.
+        mttrSeconds:
+          type: number
+          description: Mean time from a pipeline's first failed run to its next successful run. Absent when nothing recovered in the window.
+        stageDistribution:
+          type: array
+          description: Failures by failing step name, highest first.
+          items:
+            $ref: "#/components/schemas/StageFailureCount"
+        topFailingPipelines:
+          type: array
+          description: Pipelines ordered by failed runs, highest first.
+          items:
+            $ref: "#/components/schemas/FailingPipeline"
+        failureGroups:
+          type: array
+          description: Failed steps grouped by name, highest occurrence count first.
+          items:
+            $ref: "#/components/schemas/FailureGroup"
 
     UsageEntry:
       type: object
