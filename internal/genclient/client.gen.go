@@ -203,6 +203,27 @@ func (e SettingsPipelinesSortOrder) Valid() bool {
 	}
 }
 
+// Defines values for SettingsTelemetryWindow.
+const (
+	SettingsTelemetryWindowN24h SettingsTelemetryWindow = "24h"
+	SettingsTelemetryWindowN30d SettingsTelemetryWindow = "30d"
+	SettingsTelemetryWindowN7d  SettingsTelemetryWindow = "7d"
+)
+
+// Valid indicates whether the value is a known member of the SettingsTelemetryWindow enum.
+func (e SettingsTelemetryWindow) Valid() bool {
+	switch e {
+	case SettingsTelemetryWindowN24h:
+		return true
+	case SettingsTelemetryWindowN30d:
+		return true
+	case SettingsTelemetryWindowN7d:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SettingsTheme.
 const (
 	SettingsThemeDark   SettingsTheme = "dark"
@@ -287,6 +308,30 @@ func (e SettingsUpdatePipelinesSortOrder) Valid() bool {
 	case SettingsUpdatePipelinesSortOrderLessThannil:
 		return true
 	case SettingsUpdatePipelinesSortOrderName:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SettingsUpdateTelemetryWindow.
+const (
+	SettingsUpdateTelemetryWindowLessThannil SettingsUpdateTelemetryWindow = "<nil>"
+	SettingsUpdateTelemetryWindowN24h        SettingsUpdateTelemetryWindow = "24h"
+	SettingsUpdateTelemetryWindowN30d        SettingsUpdateTelemetryWindow = "30d"
+	SettingsUpdateTelemetryWindowN7d         SettingsUpdateTelemetryWindow = "7d"
+)
+
+// Valid indicates whether the value is a known member of the SettingsUpdateTelemetryWindow enum.
+func (e SettingsUpdateTelemetryWindow) Valid() bool {
+	switch e {
+	case SettingsUpdateTelemetryWindowLessThannil:
+		return true
+	case SettingsUpdateTelemetryWindowN24h:
+		return true
+	case SettingsUpdateTelemetryWindowN30d:
+		return true
+	case SettingsUpdateTelemetryWindowN7d:
 		return true
 	default:
 		return false
@@ -690,7 +735,10 @@ type Settings struct {
 	// PipelinesRepoSelector A tracked repo's id, or "all" for every repo -- not validated against an enum, since the set of valid values changes with what's currently tracked.
 	PipelinesRepoSelector string                     `json:"pipelinesRepoSelector"`
 	PipelinesSortOrder    SettingsPipelinesSortOrder `json:"pipelinesSortOrder"`
-	Theme                 SettingsTheme              `json:"theme"`
+
+	// TelemetryWindow The trailing span the failure overview, root-cause and flaky views cover. Defaults to 7d.
+	TelemetryWindow SettingsTelemetryWindow `json:"telemetryWindow"`
+	Theme           SettingsTheme           `json:"theme"`
 }
 
 // SettingsForgeFilter defines model for Settings.ForgeFilter.
@@ -702,6 +750,9 @@ type SettingsPipelinesHealthFilter string
 // SettingsPipelinesSortOrder defines model for Settings.PipelinesSortOrder.
 type SettingsPipelinesSortOrder string
 
+// SettingsTelemetryWindow The trailing span the failure overview, root-cause and flaky views cover. Defaults to 7d.
+type SettingsTelemetryWindow string
+
 // SettingsTheme defines model for Settings.Theme.
 type SettingsTheme string
 
@@ -711,6 +762,7 @@ type SettingsUpdate struct {
 	PipelinesHealthFilter *SettingsUpdatePipelinesHealthFilter `json:"pipelinesHealthFilter,omitempty"`
 	PipelinesRepoSelector *string                              `json:"pipelinesRepoSelector,omitempty"`
 	PipelinesSortOrder    *SettingsUpdatePipelinesSortOrder    `json:"pipelinesSortOrder,omitempty"`
+	TelemetryWindow       *SettingsUpdateTelemetryWindow       `json:"telemetryWindow,omitempty"`
 	Theme                 *SettingsUpdateTheme                 `json:"theme,omitempty"`
 }
 
@@ -722,6 +774,9 @@ type SettingsUpdatePipelinesHealthFilter string
 
 // SettingsUpdatePipelinesSortOrder defines model for SettingsUpdate.PipelinesSortOrder.
 type SettingsUpdatePipelinesSortOrder string
+
+// SettingsUpdateTelemetryWindow defines model for SettingsUpdate.TelemetryWindow.
+type SettingsUpdateTelemetryWindow string
 
 // SettingsUpdateTheme defines model for SettingsUpdate.Theme.
 type SettingsUpdateTheme string
