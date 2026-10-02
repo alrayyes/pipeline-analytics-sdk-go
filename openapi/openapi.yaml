@@ -286,16 +286,23 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PipelineRepoIdFilter"
         - $ref: "#/components/parameters/RepoForgeFilter"
+        - $ref: "#/components/parameters/PipelineHealthFilter"
+        - $ref: "#/components/parameters/PipelineSort"
         - $ref: "#/components/parameters/Window"
         - $ref: "#/components/parameters/Limit"
         - $ref: "#/components/parameters/Offset"
       responses:
         "200":
-          description: A page of tracked pipelines, ordered by (repoId, name)
+          description: >
+            A page of tracked pipelines, ordered by `sort` (by repoId then name
+            unless stated). `health` and `sort` apply across every matching
+            pipeline before paging, so `hasMore` is accurate.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/PipelineList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -969,6 +976,25 @@ components:
       description: Restrict the list to one tracked repo. Omitted returns every repo's pipelines.
       schema:
         type: string
+    PipelineHealthFilter:
+      name: health
+      in: query
+      required: false
+      description: Restrict the list to pipelines with this health status. Omitted returns every status. An unknown value is a 400.
+      schema:
+        $ref: "#/components/schemas/HealthStatus"
+    PipelineSort:
+      name: sort
+      in: query
+      required: false
+      description: >
+        Order of the list. `name` (the default) is by repoId then name;
+        `lastRun` is most recent run first, a pipeline with no runs last, ties
+        by repoId then name. An unknown value is a 400.
+      schema:
+        type: string
+        enum: [name, lastRun]
+        default: name
     Limit:
       name: limit
       in: query

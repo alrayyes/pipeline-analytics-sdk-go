@@ -416,6 +416,24 @@ func (e InsightsWindow) Valid() bool {
 	}
 }
 
+// Defines values for PipelineSort.
+const (
+	PipelineSortLastRun PipelineSort = "lastRun"
+	PipelineSortName    PipelineSort = "name"
+)
+
+// Valid indicates whether the value is a known member of the PipelineSort enum.
+func (e PipelineSort) Valid() bool {
+	switch e {
+	case PipelineSortLastRun:
+		return true
+	case PipelineSortName:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RunStatusFilter.
 const (
 	RunStatusFilterAll     RunStatusFilter = "all"
@@ -455,6 +473,24 @@ func (e GetFailureInsightsParamsWindow) Valid() bool {
 	case GetFailureInsightsParamsWindowN30d:
 		return true
 	case GetFailureInsightsParamsWindowN7d:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListPipelinesParamsSort.
+const (
+	ListPipelinesParamsSortLastRun ListPipelinesParamsSort = "lastRun"
+	ListPipelinesParamsSortName    ListPipelinesParamsSort = "name"
+)
+
+// Valid indicates whether the value is a known member of the ListPipelinesParamsSort enum.
+func (e ListPipelinesParamsSort) Valid() bool {
+	switch e {
+	case ListPipelinesParamsSortLastRun:
+		return true
+	case ListPipelinesParamsSortName:
 		return true
 	default:
 		return false
@@ -916,11 +952,17 @@ type Limit = int
 // Offset defines model for Offset.
 type Offset = int
 
+// PipelineHealthFilter defines model for PipelineHealthFilter.
+type PipelineHealthFilter = HealthStatus
+
 // PipelineId defines model for PipelineId.
 type PipelineId = string
 
 // PipelineRepoIdFilter defines model for PipelineRepoIdFilter.
 type PipelineRepoIdFilter = string
+
+// PipelineSort defines model for PipelineSort.
+type PipelineSort string
 
 // RepoForgeFilter defines model for RepoForgeFilter.
 type RepoForgeFilter = Forge
@@ -987,6 +1029,12 @@ type ListPipelinesParams struct {
 	// Forge Restrict the list to one forge. Omitted returns every forge.
 	Forge *RepoForgeFilter `form:"forge,omitempty" json:"forge,omitempty"`
 
+	// Health Restrict the list to pipelines with this health status. Omitted returns every status. An unknown value is a 400.
+	Health *PipelineHealthFilter `form:"health,omitempty" json:"health,omitempty"`
+
+	// Sort Order of the list. `name` (the default) is by repoId then name; `lastRun` is most recent run first, a pipeline with no runs last, ties by repoId then name. An unknown value is a 400.
+	Sort *ListPipelinesParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
+
 	// Window Trailing run count or duration the trend/ranking is computed over. Defaults to a server-chosen rolling window.
 	Window *Window `form:"window,omitempty" json:"window,omitempty"`
 
@@ -996,6 +1044,9 @@ type ListPipelinesParams struct {
 	// Offset Items to skip before the returned page.
 	Offset *Offset `form:"offset,omitempty" json:"offset,omitempty"`
 }
+
+// ListPipelinesParamsSort defines parameters for ListPipelines.
+type ListPipelinesParamsSort string
 
 // GetPipelineParams defines parameters for GetPipeline.
 type GetPipelineParams struct {
@@ -2796,6 +2847,30 @@ func NewListPipelinesRequest(server string, params *ListPipelinesParams) (*http.
 		if params.Forge != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "forge", *params.Forge, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Health != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "health", *params.Health, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Sort != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "sort", *params.Sort, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -4955,6 +5030,8 @@ type ListPipelinesResponse struct {
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *PipelineList
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *BadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Unauthorized
 }
@@ -4962,6 +5039,11 @@ type ListPipelinesResponse struct {
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
 func (r ListPipelinesResponse) GetJSON200() *PipelineList {
 	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ListPipelinesResponse) GetJSON400() *BadRequest {
+	return r.JSON400
 }
 
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
@@ -7133,6 +7215,13 @@ func ParseListPipelinesResponse(rsp *http.Response) (*ListPipelinesResponse, err
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest Unauthorized
