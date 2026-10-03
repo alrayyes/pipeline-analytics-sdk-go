@@ -75,8 +75,9 @@ operation needs no edit there.
 
 Two things it can't generate. A required enum query parameter needs its
 type listed in `enumSamples`, or that operation fails with a 4xx naming it.
-The other is a request body. An operation that takes
-one is listed in `bodyOperations` with the reason it has no test yet, and
-a new body operation that isn't listed fails
-`TestContract_EveryOperationIsAccountedFor`, naming it. Fix that by writing
-a test with a valid body and keeping the entry out of the map.
+The other is a request body: each operation that takes one has a case in
+`bodyCases` (`contract/body_test.go`) with a body valid against the spec's
+schema, which must get the documented success status, and a body that breaks
+the schema, which must get a 4xx from the mock. A new body operation without a
+case fails `TestContract_EveryOperationIsAccountedFor`, naming it. Fix that by
+adding the case.

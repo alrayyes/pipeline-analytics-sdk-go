@@ -27,24 +27,6 @@ import (
 	pipelineanalytics "github.com/alrayyes/pipeline-analytics-sdk-go"
 )
 
-// bodyOperations are operations that take a request body. The generic call
-// has no valid body to send, and a zero one fails the mock's schema
-// validation, so each needs a hand-written test of its own. An operation
-// with a body that isn't listed here fails TestContract_EveryOperationIsAccountedFor,
-// naming it, rather than going untested. Every entry is a known gap: none of
-// these had a contract test before the generic one, either.
-var bodyOperations = map[string]string{
-	"AddCredential":    "needs a valid WebAuthn credential body",
-	"DiscoverRepos":    "needs a valid discovery request body",
-	"ForgejoWebhook":   "needs a valid webhook payload",
-	"GithubWebhook":    "needs a valid webhook payload",
-	"McpEndpoint":      "needs a valid JSON-RPC body",
-	"RegisterRepo":     "needs a valid registration body",
-	"UpdateSettings":   "needs a valid settings body",
-	"WebauthnLogin":    "needs a valid assertion body",
-	"WebauthnRegister": "needs a valid attestation body",
-}
-
 // enumSamples gives a valid value for each required enum parameter type, by
 // Go type name: reflection can't list a string type's allowed values, and
 // "sample" fails the mock's enum validation. A new required enum shows up as
@@ -191,7 +173,7 @@ func TestContract_Operations(t *testing.T) {
 
 	for _, op := range operationNames(client) {
 		if takesBody(reflect.ValueOf(client.ClientWithResponses).MethodByName(op + "WithResponse")) {
-			continue // see bodyOperations
+			continue // see bodyCases
 		}
 
 		t.Run(op, func(t *testing.T) {
@@ -204,8 +186,8 @@ func TestContract_Operations(t *testing.T) {
 }
 
 // TestContract_EveryOperationIsAccountedFor fails, naming the operation, when
-// a regeneration adds one the generic test can't call and bodyOperations
-// doesn't list -- so a new operation is never silently untested.
+// a regeneration adds one that takes a request body and has no entry in
+// bodyCases -- so a new operation is never silently untested.
 func TestContract_EveryOperationIsAccountedFor(t *testing.T) {
 	client := mustClient(t)
 
@@ -213,7 +195,7 @@ func TestContract_EveryOperationIsAccountedFor(t *testing.T) {
 
 	for _, op := range operationNames(client) {
 		method := reflect.ValueOf(client.ClientWithResponses).MethodByName(op + "WithResponse")
-		if _, listed := bodyOperations[op]; takesBody(method) && !listed {
+		if _, tested := bodyCases[op]; takesBody(method) && !tested {
 			unaccounted = append(unaccounted, op)
 		}
 	}
@@ -221,7 +203,7 @@ func TestContract_EveryOperationIsAccountedFor(t *testing.T) {
 	slices.Sort(unaccounted)
 
 	if len(unaccounted) > 0 {
-		t.Fatalf("operations with a request body and no contract test: %s -- write one in contract_test.go and list the operation in bodyOperations",
+		t.Fatalf("operations with a request body and no contract test: %s -- add a case to bodyCases in body_test.go",
 			strings.Join(unaccounted, ", "))
 	}
 }
