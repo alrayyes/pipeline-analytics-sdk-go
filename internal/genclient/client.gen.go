@@ -1095,6 +1095,9 @@ type Conflict = Error
 // NotFound defines model for NotFound.
 type NotFound = Error
 
+// PayloadTooLarge defines model for PayloadTooLarge.
+type PayloadTooLarge = Error
+
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = Error
 
@@ -1646,7 +1649,7 @@ type ClientInterface interface {
 
 	// GetReadyz Readiness -- the instance can serve, its database answers
 	//
-	// Public and unauthenticated, for the container's `HEALTHCHECK` and any orchestrator. Reads the database schema within a short deadline. A failure returns 503 with a generic body: the cause goes to the server log, not to an unauthenticated caller.
+	// Public and unauthenticated, for the container's `HEALTHCHECK` and any orchestrator. Reads the database schema within a short deadline and reuses the result for a few seconds, so polling can't hammer the database. A failure returns 503 with a generic body: the cause goes to the server log, not to an unauthenticated caller. After SIGTERM it returns 503 without checking, while the server keeps serving for its drain period, so a router takes the instance out of rotation before the listener closes.
 	//
 	// Corresponds with GET /readyz (the `GetReadyz` operationId).
 	GetReadyz(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2345,7 +2348,7 @@ func (c *Client) GetHealthz(ctx context.Context, reqEditors ...RequestEditorFn) 
 
 // GetReadyz Readiness -- the instance can serve, its database answers
 //
-// Public and unauthenticated, for the container's `HEALTHCHECK` and any orchestrator. Reads the database schema within a short deadline. A failure returns 503 with a generic body: the cause goes to the server log, not to an unauthenticated caller.
+// Public and unauthenticated, for the container's `HEALTHCHECK` and any orchestrator. Reads the database schema within a short deadline and reuses the result for a few seconds, so polling can't hammer the database. A failure returns 503 with a generic body: the cause goes to the server log, not to an unauthenticated caller. After SIGTERM it returns 503 without checking, while the server keeps serving for its drain period, so a router takes the instance out of rotation before the listener closes.
 //
 // Corresponds with GET /readyz (the `GetReadyz` operationId).
 func (c *Client) GetReadyz(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -4539,7 +4542,7 @@ type ClientWithResponsesInterface interface {
 
 	// GetReadyzWithResponse Readiness -- the instance can serve, its database answers
 	//
-	// Public and unauthenticated, for the container's `HEALTHCHECK` and any orchestrator. Reads the database schema within a short deadline. A failure returns 503 with a generic body: the cause goes to the server log, not to an unauthenticated caller.
+	// Public and unauthenticated, for the container's `HEALTHCHECK` and any orchestrator. Reads the database schema within a short deadline and reuses the result for a few seconds, so polling can't hammer the database. A failure returns 503 with a generic body: the cause goes to the server log, not to an unauthenticated caller. After SIGTERM it returns 503 without checking, while the server keeps serving for its drain period, so a router takes the instance out of rotation before the listener closes.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -4630,6 +4633,8 @@ type AddCredentialResponse struct {
 	JSON400 *BadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *PayloadTooLarge
 }
 
 // GetJSON400 returns the response for an HTTP 400 `application/json` response
@@ -4640,6 +4645,11 @@ func (r AddCredentialResponse) GetJSON400() *BadRequest {
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
 func (r AddCredentialResponse) GetJSON401() *Unauthorized {
 	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r AddCredentialResponse) GetJSON413() *PayloadTooLarge {
+	return r.JSON413
 }
 
 // GetBody returns the raw response body bytes
@@ -4798,6 +4808,8 @@ type WebauthnLoginResponse struct {
 	HTTPResponse *http.Response
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Error
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *PayloadTooLarge
 	// Headers200 the parsed response headers for an HTTP 200 response
 	Headers200 *WebauthnLoginResponse200Headers
 }
@@ -4805,6 +4817,11 @@ type WebauthnLoginResponse struct {
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
 func (r WebauthnLoginResponse) GetJSON401() *Error {
 	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r WebauthnLoginResponse) GetJSON413() *PayloadTooLarge {
+	return r.JSON413
 }
 
 // GetBody returns the raw response body bytes
@@ -4944,6 +4961,8 @@ type WebauthnRegisterResponse struct {
 	JSON400 *BadRequest
 	// JSON409 the response for an HTTP 409 `application/json` response
 	JSON409 *Error
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *PayloadTooLarge
 	// Headers201 the parsed response headers for an HTTP 201 response
 	Headers201 *WebauthnRegisterResponse201Headers
 }
@@ -4956,6 +4975,11 @@ func (r WebauthnRegisterResponse) GetJSON400() *BadRequest {
 // GetJSON409 returns the response for an HTTP 409 `application/json` response
 func (r WebauthnRegisterResponse) GetJSON409() *Error {
 	return r.JSON409
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r WebauthnRegisterResponse) GetJSON413() *PayloadTooLarge {
+	return r.JSON413
 }
 
 // GetBody returns the raw response body bytes
@@ -5241,6 +5265,8 @@ type McpEndpointResponse struct {
 	JSON200 *map[string]interface{}
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *PayloadTooLarge
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
@@ -5251,6 +5277,11 @@ func (r McpEndpointResponse) GetJSON200() *map[string]interface{} {
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
 func (r McpEndpointResponse) GetJSON401() *Unauthorized {
 	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r McpEndpointResponse) GetJSON413() *PayloadTooLarge {
+	return r.JSON413
 }
 
 // GetBody returns the raw response body bytes
@@ -5561,6 +5592,8 @@ type RegisterRepoResponse struct {
 	JSON401 *Unauthorized
 	// JSON409 the response for an HTTP 409 `application/json` response
 	JSON409 *Conflict
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *PayloadTooLarge
 }
 
 // GetJSON201 returns the response for an HTTP 201 `application/json` response
@@ -5581,6 +5614,11 @@ func (r RegisterRepoResponse) GetJSON401() *Unauthorized {
 // GetJSON409 returns the response for an HTTP 409 `application/json` response
 func (r RegisterRepoResponse) GetJSON409() *Conflict {
 	return r.JSON409
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r RegisterRepoResponse) GetJSON413() *PayloadTooLarge {
+	return r.JSON413
 }
 
 // GetBody returns the raw response body bytes
@@ -5621,6 +5659,8 @@ type DiscoverReposResponse struct {
 	JSON400 *BadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *PayloadTooLarge
 	// JSON502 the response for an HTTP 502 `application/json` response
 	JSON502 *BadGateway
 }
@@ -5638,6 +5678,11 @@ func (r DiscoverReposResponse) GetJSON400() *BadRequest {
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
 func (r DiscoverReposResponse) GetJSON401() *Unauthorized {
 	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r DiscoverReposResponse) GetJSON413() *PayloadTooLarge {
+	return r.JSON413
 }
 
 // GetJSON502 returns the response for an HTTP 502 `application/json` response
@@ -6003,6 +6048,8 @@ type UpdateSettingsResponse struct {
 	JSON400 *BadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *PayloadTooLarge
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
@@ -6018,6 +6065,11 @@ func (r UpdateSettingsResponse) GetJSON400() *BadRequest {
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
 func (r UpdateSettingsResponse) GetJSON401() *Unauthorized {
 	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r UpdateSettingsResponse) GetJSON413() *PayloadTooLarge {
+	return r.JSON413
 }
 
 // GetBody returns the raw response body bytes
@@ -6266,11 +6318,18 @@ type ForgejoWebhookResponse struct {
 	HTTPResponse *http.Response
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Error
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *PayloadTooLarge
 }
 
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
 func (r ForgejoWebhookResponse) GetJSON401() *Error {
 	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r ForgejoWebhookResponse) GetJSON413() *PayloadTooLarge {
+	return r.JSON413
 }
 
 // GetBody returns the raw response body bytes
@@ -6307,11 +6366,18 @@ type GithubWebhookResponse struct {
 	HTTPResponse *http.Response
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Error
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *PayloadTooLarge
 }
 
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
 func (r GithubWebhookResponse) GetJSON401() *Error {
 	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r GithubWebhookResponse) GetJSON413() *PayloadTooLarge {
+	return r.JSON413
 }
 
 // GetBody returns the raw response body bytes
@@ -6902,7 +6968,7 @@ func (c *ClientWithResponses) GetHealthzWithResponse(ctx context.Context, reqEdi
 
 // GetReadyzWithResponse Readiness -- the instance can serve, its database answers
 //
-// Public and unauthenticated, for the container's `HEALTHCHECK` and any orchestrator. Reads the database schema within a short deadline. A failure returns 503 with a generic body: the cause goes to the server log, not to an unauthenticated caller.
+// Public and unauthenticated, for the container's `HEALTHCHECK` and any orchestrator. Reads the database schema within a short deadline and reuses the result for a few seconds, so polling can't hammer the database. A failure returns 503 with a generic body: the cause goes to the server log, not to an unauthenticated caller. After SIGTERM it returns 503 without checking, while the server keeps serving for its drain period, so a router takes the instance out of rotation before the listener closes.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -7031,6 +7097,13 @@ func ParseAddCredentialResponse(rsp *http.Response) (*AddCredentialResponse, err
 		}
 		response.JSON401 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest PayloadTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
 	}
 
 	return response, nil
@@ -7156,6 +7229,13 @@ func ParseWebauthnLoginResponse(rsp *http.Response) (*WebauthnLoginResponse, err
 		}
 		response.JSON401 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest PayloadTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
 	}
 
 	switch {
@@ -7279,6 +7359,13 @@ func ParseWebauthnRegisterResponse(rsp *http.Response) (*WebauthnRegisterRespons
 			return nil, err
 		}
 		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest PayloadTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
 
 	}
 
@@ -7506,6 +7593,13 @@ func ParseMcpEndpointResponse(rsp *http.Response) (*McpEndpointResponse, error) 
 			return nil, err
 		}
 		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest PayloadTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
 
 	case rsp.StatusCode == 200:
 		// Content-type (text/event-stream) unsupported
@@ -7750,6 +7844,13 @@ func ParseRegisterRepoResponse(rsp *http.Response) (*RegisterRepoResponse, error
 		}
 		response.JSON409 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest PayloadTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
 	}
 
 	return response, nil
@@ -7789,6 +7890,13 @@ func ParseDiscoverReposResponse(rsp *http.Response) (*DiscoverReposResponse, err
 			return nil, err
 		}
 		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest PayloadTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 502:
 		var dest BadGateway
@@ -8068,6 +8176,13 @@ func ParseUpdateSettingsResponse(rsp *http.Response) (*UpdateSettingsResponse, e
 		}
 		response.JSON401 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest PayloadTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
 	}
 
 	return response, nil
@@ -8231,6 +8346,13 @@ func ParseForgejoWebhookResponse(rsp *http.Response) (*ForgejoWebhookResponse, e
 		}
 		response.JSON401 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest PayloadTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
 	}
 
 	return response, nil
@@ -8259,6 +8381,13 @@ func ParseGithubWebhookResponse(rsp *http.Response) (*GithubWebhookResponse, err
 			return nil, err
 		}
 		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest PayloadTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
 
 	}
 
