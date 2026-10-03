@@ -13,6 +13,9 @@ info:
     identifier: AGPL-3.0-only
 servers:
   - url: /
+    # Public: the dashboard and the API are one binary, reachable by whoever
+    # can reach it. Declared for OWASP API9 (inventory management).
+    x-internal: false
 
 security:
   - sessionCookie: []
