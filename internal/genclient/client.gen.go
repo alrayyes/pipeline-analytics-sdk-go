@@ -44,6 +44,27 @@ func (e FailureCategory) Valid() bool {
 	}
 }
 
+// Defines values for FailureInsightsWindow.
+const (
+	FailureInsightsWindowN24h FailureInsightsWindow = "24h"
+	FailureInsightsWindowN30d FailureInsightsWindow = "30d"
+	FailureInsightsWindowN7d  FailureInsightsWindow = "7d"
+)
+
+// Valid indicates whether the value is a known member of the FailureInsightsWindow enum.
+func (e FailureInsightsWindow) Valid() bool {
+	switch e {
+	case FailureInsightsWindowN24h:
+		return true
+	case FailureInsightsWindowN30d:
+		return true
+	case FailureInsightsWindowN7d:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Forge.
 const (
 	ForgeForgejo Forge = "forgejo"
@@ -619,7 +640,13 @@ type FailureInsights struct {
 	// TopFailingPipelines Pipelines ordered by failed runs, highest first.
 	TopFailingPipelines []FailingPipeline `json:"topFailingPipelines"`
 	TotalRuns           int               `json:"totalRuns"`
+
+	// Window The window these figures cover: the requested one, or the server's default when the request named none or an unknown one. Clients show this rather than assuming a default.
+	Window FailureInsightsWindow `json:"window"`
 }
+
+// FailureInsightsWindow The window these figures cover: the requested one, or the server's default when the request named none or an unknown one. Clients show this rather than assuming a default.
+type FailureInsightsWindow string
 
 // FlakyRun defines model for FlakyRun.
 type FlakyRun struct {

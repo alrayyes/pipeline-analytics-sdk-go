@@ -1592,6 +1592,7 @@ components:
       type: object
       required:
         [
+          window,
           totalRuns,
           failedRuns,
           flakyStepRatio,
@@ -1601,6 +1602,13 @@ components:
           failureGroups,
         ]
       properties:
+        window:
+          type: string
+          enum: ["24h", "7d", "30d"]
+          description: >
+            The window these figures cover: the requested one, or the
+            server's default when the request named none or an unknown one.
+            Clients show this rather than assuming a default.
         totalRuns:
           type: integer
         failedRuns:
