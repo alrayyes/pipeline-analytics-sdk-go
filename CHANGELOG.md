@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/alrayyes/pipeline-analytics-sdk-go/compare/v1.8.0...v1.9.0) (2026-10-03)
+
+
+### Features
+
+* **spec:** regenerate client from pipeline-analytics openapi.yaml ([#43](https://github.com/alrayyes/pipeline-analytics-sdk-go/issues/43)) ([7eff73f](https://github.com/alrayyes/pipeline-analytics-sdk-go/commit/7eff73fce73fe23ad828775507303ceb842bb3ea))
+
 ## [1.8.0](https://github.com/alrayyes/pipeline-analytics-sdk-go/compare/v1.7.0...v1.8.0) (2026-10-03)
 
 
