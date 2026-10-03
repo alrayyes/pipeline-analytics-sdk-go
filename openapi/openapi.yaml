@@ -48,9 +48,13 @@ paths:
       summary: Readiness -- the instance can serve, its database answers
       description: >
         Public and unauthenticated, for the container's `HEALTHCHECK` and
-        any orchestrator. Reads the database schema within a short deadline. A
-        failure returns 503 with a generic body: the cause goes to the
-        server log, not to an unauthenticated caller.
+        any orchestrator. Reads the database schema within a short deadline and
+        reuses the result for a few seconds, so polling can't hammer the
+        database. A failure returns 503 with a generic body: the cause goes to
+        the server log, not to an unauthenticated caller. After SIGTERM it
+        returns 503 without checking, while the server keeps serving for its
+        drain period, so a router takes the instance out of rotation before
+        the listener closes.
       tags: [meta]
       security: []
       responses:
@@ -62,7 +66,7 @@ paths:
                 type: string
                 examples: [ok]
         "503":
-          description: The database did not answer in time, or errored
+          description: The database did not answer in time or errored, or the instance is shutting down
           content:
             application/json:
               schema:
@@ -120,6 +124,8 @@ paths:
                 type: string
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
 
   /api/repos:
     get:
@@ -166,6 +172,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "409":
           $ref: "#/components/responses/Conflict"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
 
   /api/repos/identifiers:
     get:
@@ -237,6 +245,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
         "502":
           $ref: "#/components/responses/BadGateway"
 
@@ -583,6 +593,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
 
   /api/auth/register/options:
     post:
@@ -639,6 +651,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
 
   /api/auth/login/options:
     post:
@@ -693,6 +707,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
 
   /api/auth/logout:
     post:
@@ -829,6 +845,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
 
   /api/auth/credentials/{credentialId}:
     delete:
@@ -898,6 +916,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
 
   /webhooks/forgejo:
     post:
@@ -933,6 +953,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
 
 components:
   securitySchemes:
@@ -1058,6 +1080,15 @@ components:
         default: all
 
   responses:
+    PayloadTooLarge:
+      description: >
+        The request body is larger than the limit: 64 KiB for the API and
+        the MCP endpoint, 2 MiB for the forge webhook receivers. The body is
+        not read past the limit.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     BadRequest:
       description: The request body failed validation
       content:
@@ -1130,6 +1161,7 @@ components:
           enum: [all, healthy, unhealthy]
         pipelinesRepoSelector:
           type: string
+          maxLength: 128
           description: >
             A tracked repo's id, or "all" for every repo -- not
             validated against an enum, since the set of valid values
@@ -1160,6 +1192,7 @@ components:
           enum: [all, healthy, unhealthy, null]
         pipelinesRepoSelector:
           type: [string, "null"]
+          maxLength: 128
         pipelinesSortOrder:
           type: [string, "null"]
           enum: [name, lastRun, null]
@@ -1267,11 +1300,14 @@ components:
           $ref: "#/components/schemas/Forge"
         identifier:
           type: string
+          maxLength: 200
         forgejoInstanceUrl:
           type: string
           format: uri
+          maxLength: 2048
         token:
           type: string
+          maxLength: 1024
           description: Repo-scoped personal access token. Never echoed back.
 
     RepoDiscoveryRequest:
@@ -1283,8 +1319,10 @@ components:
         forgejoInstanceUrl:
           type: string
           format: uri
+          maxLength: 2048
         token:
           type: string
+          maxLength: 1024
           description: Never stored -- used for this one lookup only.
 
     HealthStatus:
