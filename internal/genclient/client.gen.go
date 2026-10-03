@@ -65,6 +65,27 @@ func (e FailureInsightsWindow) Valid() bool {
 	}
 }
 
+// Defines values for FlakyStepListWindow.
+const (
+	FlakyStepListWindowN24h FlakyStepListWindow = "24h"
+	FlakyStepListWindowN30d FlakyStepListWindow = "30d"
+	FlakyStepListWindowN7d  FlakyStepListWindow = "7d"
+)
+
+// Valid indicates whether the value is a known member of the FlakyStepListWindow enum.
+func (e FlakyStepListWindow) Valid() bool {
+	switch e {
+	case FlakyStepListWindowN24h:
+		return true
+	case FlakyStepListWindowN30d:
+		return true
+	case FlakyStepListWindowN7d:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Forge.
 const (
 	ForgeForgejo Forge = "forgejo"
@@ -542,6 +563,27 @@ func (e ListRunsParamsStatus) Valid() bool {
 	}
 }
 
+// Defines values for ListFlakyStepsParamsWindow.
+const (
+	ListFlakyStepsParamsWindowN24h ListFlakyStepsParamsWindow = "24h"
+	ListFlakyStepsParamsWindowN30d ListFlakyStepsParamsWindow = "30d"
+	ListFlakyStepsParamsWindowN7d  ListFlakyStepsParamsWindow = "7d"
+)
+
+// Valid indicates whether the value is a known member of the ListFlakyStepsParamsWindow enum.
+func (e ListFlakyStepsParamsWindow) Valid() bool {
+	switch e {
+	case ListFlakyStepsParamsWindowN24h:
+		return true
+	case ListFlakyStepsParamsWindowN30d:
+		return true
+	case ListFlakyStepsParamsWindowN7d:
+		return true
+	default:
+		return false
+	}
+}
+
 // ApiToken defines model for ApiToken.
 type ApiToken struct {
 	CreatedAt time.Time `json:"createdAt"`
@@ -655,6 +697,35 @@ type FlakyRun struct {
 	RunId     string     `json:"runId"`
 	StartedAt *time.Time `json:"startedAt,omitempty"`
 }
+
+// FlakyStepEntry defines model for FlakyStepEntry.
+type FlakyStepEntry struct {
+	// FlakeRate Fraction in (0, 1] of the step's runs in the window that failed.
+	FlakeRate    float32 `json:"flakeRate"`
+	Name         string  `json:"name"`
+	PipelineId   string  `json:"pipelineId"`
+	PipelineName string  `json:"pipelineName"`
+
+	// RecentOutcomes The step's result in its most recent runs, oldest first.
+	RecentOutcomes []Outcome `json:"recentOutcomes"`
+	RepoId         string    `json:"repoId"`
+
+	// RunCount Runs of this step in the window.
+	RunCount int `json:"runCount"`
+}
+
+// FlakyStepList defines model for FlakyStepList.
+type FlakyStepList struct {
+	// HasMore True when flaky steps beyond this page exist. Always false when limit was omitted.
+	HasMore bool             `json:"hasMore"`
+	Steps   []FlakyStepEntry `json:"steps"`
+
+	// Window The window these figures cover: the requested one, or the server's default. Clients show this rather than assuming a default.
+	Window FlakyStepListWindow `json:"window"`
+}
+
+// FlakyStepListWindow The window these figures cover: the requested one, or the server's default. Clients show this rather than assuming a default.
+type FlakyStepListWindow string
 
 // Forge defines model for Forge.
 type Forge string
@@ -1146,6 +1217,27 @@ type ListRunsParams struct {
 // ListRunsParamsStatus defines parameters for ListRuns.
 type ListRunsParamsStatus string
 
+// ListFlakyStepsParams defines parameters for ListFlakySteps.
+type ListFlakyStepsParams struct {
+	// RepoId Restrict the list to one tracked repo. Omitted returns every repo's pipelines.
+	RepoId *PipelineRepoIdFilter `form:"repoId,omitempty" json:"repoId,omitempty"`
+
+	// Forge Restrict the list to one forge. Omitted returns every forge.
+	Forge *RepoForgeFilter `form:"forge,omitempty" json:"forge,omitempty"`
+
+	// Window Trailing span of time the failure insights cover: `24h`, `7d` or `30d`. Unlike `Window`, this is never a run count -- a quiet and a busy pipeline would cover very different spans. Anything else falls back to `7d`.
+	Window *ListFlakyStepsParamsWindow `form:"window,omitempty" json:"window,omitempty"`
+
+	// Limit Max items to return. Omitted returns every matching item, unpaginated.
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Items to skip before the returned page.
+	Offset *Offset `form:"offset,omitempty" json:"offset,omitempty"`
+}
+
+// ListFlakyStepsParamsWindow defines parameters for ListFlakySteps.
+type ListFlakyStepsParamsWindow string
+
 // ListUnhealthyStepsParams defines parameters for ListUnhealthySteps.
 type ListUnhealthyStepsParams struct {
 	// Window Trailing run count or duration the trend/ranking is computed over. Defaults to a server-chosen rolling window.
@@ -1525,6 +1617,13 @@ type ClientInterface interface {
 	//
 	// Corresponds with PATCH /api/settings (the `UpdateSettings` operationId).
 	UpdateSettings(ctx context.Context, body UpdateSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListFlakySteps Flaky steps across every pipeline, ranked by flake rate, each with its recent run results
+	//
+	// Backs the flaky telemetry view. A step is listed when it is flagged flaky within the window. `flakeRate` is the fraction of the step's runs in the window that failed; `runCount` is how many runs that is. `recentOutcomes` is the step's result in its most recent runs (at most 40), oldest first, so a client draws the matrix without interpreting status strings. Ordered by `flakeRate` descending, then `runCount` descending, then pipeline and step name.
+	//
+	// Corresponds with GET /api/steps/flaky (the `ListFlakySteps` operationId).
+	ListFlakySteps(ctx context.Context, params *ListFlakyStepsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListUnhealthySteps A page of pipelines with a flaky or failing step, grouped by pipeline
 	//
@@ -2168,6 +2267,23 @@ func (c *Client) UpdateSettingsWithBody(ctx context.Context, contentType string,
 // Corresponds with PATCH /api/settings (the `UpdateSettings` operationId).
 func (c *Client) UpdateSettings(ctx context.Context, body UpdateSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateSettingsRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListFlakySteps Flaky steps across every pipeline, ranked by flake rate, each with its recent run results
+//
+// Backs the flaky telemetry view. A step is listed when it is flagged flaky within the window. `flakeRate` is the fraction of the step's runs in the window that failed; `runCount` is how many runs that is. `recentOutcomes` is the step's result in its most recent runs (at most 40), oldest first, so a client draws the matrix without interpreting status strings. Ordered by `flakeRate` descending, then `runCount` descending, then pipeline and step name.
+//
+// Corresponds with GET /api/steps/flaky (the `ListFlakySteps` operationId).
+func (c *Client) ListFlakySteps(ctx context.Context, params *ListFlakyStepsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListFlakyStepsRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -3669,6 +3785,108 @@ func NewUpdateSettingsRequestWithBody(server string, contentType string, body io
 	return req, nil
 }
 
+// NewListFlakyStepsRequest constructs an http.Request for the ListFlakySteps method
+func NewListFlakyStepsRequest(server string, params *ListFlakyStepsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/steps/flaky")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.RepoId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "repoId", *params.RepoId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Forge != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "forge", *params.Forge, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Window != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "window", *params.Window, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "offset", *params.Offset, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListUnhealthyStepsRequest constructs an http.Request for the ListUnhealthySteps method
 func NewListUnhealthyStepsRequest(server string, params *ListUnhealthyStepsParams) (*http.Request, error) {
 	var err error
@@ -4284,6 +4502,15 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with PATCH /api/settings (the `UpdateSettings` operationId).
 	UpdateSettingsWithResponse(ctx context.Context, body UpdateSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSettingsResponse, error)
+
+	// ListFlakyStepsWithResponse Flaky steps across every pipeline, ranked by flake rate, each with its recent run results
+	//
+	// Backs the flaky telemetry view. A step is listed when it is flagged flaky within the window. `flakeRate` is the fraction of the step's runs in the window that failed; `runCount` is how many runs that is. `recentOutcomes` is the step's result in its most recent runs (at most 40), oldest first, so a client draws the matrix without interpreting status strings. Ordered by `flakeRate` descending, then `runCount` descending, then pipeline and step name.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/steps/flaky (the `ListFlakySteps` operationId).
+	ListFlakyStepsWithResponse(ctx context.Context, params *ListFlakyStepsParams, reqEditors ...RequestEditorFn) (*ListFlakyStepsResponse, error)
 
 	// ListUnhealthyStepsWithResponse A page of pipelines with a flaky or failing step, grouped by pipeline
 	//
@@ -5822,6 +6049,54 @@ func (r UpdateSettingsResponse) ContentType() string {
 	return ""
 }
 
+type ListFlakyStepsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *FlakyStepList
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListFlakyStepsResponse) GetJSON200() *FlakyStepList {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListFlakyStepsResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r ListFlakyStepsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListFlakyStepsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListFlakyStepsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListFlakyStepsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type ListUnhealthyStepsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -6565,6 +6840,21 @@ func (c *ClientWithResponses) UpdateSettingsWithResponse(ctx context.Context, bo
 		return nil, err
 	}
 	return ParseUpdateSettingsResponse(rsp)
+}
+
+// ListFlakyStepsWithResponse Flaky steps across every pipeline, ranked by flake rate, each with its recent run results
+//
+// Backs the flaky telemetry view. A step is listed when it is flagged flaky within the window. `flakeRate` is the fraction of the step's runs in the window that failed; `runCount` is how many runs that is. `recentOutcomes` is the step's result in its most recent runs (at most 40), oldest first, so a client draws the matrix without interpreting status strings. Ordered by `flakeRate` descending, then `runCount` descending, then pipeline and step name.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/steps/flaky (the `ListFlakySteps` operationId).
+func (c *ClientWithResponses) ListFlakyStepsWithResponse(ctx context.Context, params *ListFlakyStepsParams, reqEditors ...RequestEditorFn) (*ListFlakyStepsResponse, error) {
+	rsp, err := c.ListFlakySteps(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListFlakyStepsResponse(rsp)
 }
 
 // ListUnhealthyStepsWithResponse A page of pipelines with a flaky or failing step, grouped by pipeline
@@ -7770,6 +8060,39 @@ func ParseUpdateSettingsResponse(rsp *http.Response) (*UpdateSettingsResponse, e
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListFlakyStepsResponse parses an HTTP response from a ListFlakyStepsWithResponse call
+func ParseListFlakyStepsResponse(rsp *http.Response) (*ListFlakyStepsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListFlakyStepsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FlakyStepList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest Unauthorized

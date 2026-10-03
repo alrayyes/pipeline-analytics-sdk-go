@@ -453,6 +453,35 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /api/steps/flaky:
+    get:
+      operationId: listFlakySteps
+      summary: Flaky steps across every pipeline, ranked by flake rate, each with its recent run results
+      description: >
+        Backs the flaky telemetry view. A step is listed when it is flagged
+        flaky within the window. `flakeRate` is the fraction of the step's
+        runs in the window that failed; `runCount` is how many runs that is.
+        `recentOutcomes` is the step's result in its most recent runs
+        (at most 40), oldest first, so a client draws the matrix without
+        interpreting status strings. Ordered by `flakeRate` descending, then
+        `runCount` descending, then pipeline and step name.
+      tags: [insights]
+      parameters:
+        - $ref: "#/components/parameters/PipelineRepoIdFilter"
+        - $ref: "#/components/parameters/RepoForgeFilter"
+        - $ref: "#/components/parameters/InsightsWindow"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: A page of flaky steps
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlakyStepList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /api/insights/failures:
     get:
       operationId: getFailureInsights
@@ -1587,6 +1616,58 @@ components:
                 type: string
               pipelineName:
                 type: string
+
+    FlakyStepEntry:
+      type: object
+      required:
+        [
+          pipelineId,
+          pipelineName,
+          repoId,
+          name,
+          flakeRate,
+          runCount,
+          recentOutcomes,
+        ]
+      properties:
+        pipelineId:
+          type: string
+        pipelineName:
+          type: string
+        repoId:
+          type: string
+        name:
+          type: string
+        flakeRate:
+          type: number
+          description: Fraction in (0, 1] of the step's runs in the window that failed.
+        runCount:
+          type: integer
+          description: Runs of this step in the window.
+        recentOutcomes:
+          type: array
+          maxItems: 40
+          description: The step's result in its most recent runs, oldest first.
+          items:
+            $ref: "#/components/schemas/Outcome"
+
+    FlakyStepList:
+      type: object
+      required: [window, steps, hasMore]
+      properties:
+        window:
+          type: string
+          enum: ["24h", "7d", "30d"]
+          description: >
+            The window these figures cover: the requested one, or the
+            server's default. Clients show this rather than assuming a default.
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/FlakyStepEntry"
+        hasMore:
+          type: boolean
+          description: True when flaky steps beyond this page exist. Always false when limit was omitted.
 
     FailureInsights:
       type: object
