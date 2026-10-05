@@ -461,6 +461,108 @@ func (e SettingsUpdateTheme) Valid() bool {
 	}
 }
 
+// Defines values for SettingsValuesForgeFilter.
+const (
+	SettingsValuesForgeFilterAll     SettingsValuesForgeFilter = "all"
+	SettingsValuesForgeFilterForgejo SettingsValuesForgeFilter = "forgejo"
+	SettingsValuesForgeFilterGithub  SettingsValuesForgeFilter = "github"
+)
+
+// Valid indicates whether the value is a known member of the SettingsValuesForgeFilter enum.
+func (e SettingsValuesForgeFilter) Valid() bool {
+	switch e {
+	case SettingsValuesForgeFilterAll:
+		return true
+	case SettingsValuesForgeFilterForgejo:
+		return true
+	case SettingsValuesForgeFilterGithub:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SettingsValuesPipelinesHealthFilter.
+const (
+	SettingsValuesPipelinesHealthFilterAll       SettingsValuesPipelinesHealthFilter = "all"
+	SettingsValuesPipelinesHealthFilterHealthy   SettingsValuesPipelinesHealthFilter = "healthy"
+	SettingsValuesPipelinesHealthFilterUnhealthy SettingsValuesPipelinesHealthFilter = "unhealthy"
+)
+
+// Valid indicates whether the value is a known member of the SettingsValuesPipelinesHealthFilter enum.
+func (e SettingsValuesPipelinesHealthFilter) Valid() bool {
+	switch e {
+	case SettingsValuesPipelinesHealthFilterAll:
+		return true
+	case SettingsValuesPipelinesHealthFilterHealthy:
+		return true
+	case SettingsValuesPipelinesHealthFilterUnhealthy:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SettingsValuesPipelinesSortOrder.
+const (
+	SettingsValuesPipelinesSortOrderLastRun SettingsValuesPipelinesSortOrder = "lastRun"
+	SettingsValuesPipelinesSortOrderName    SettingsValuesPipelinesSortOrder = "name"
+)
+
+// Valid indicates whether the value is a known member of the SettingsValuesPipelinesSortOrder enum.
+func (e SettingsValuesPipelinesSortOrder) Valid() bool {
+	switch e {
+	case SettingsValuesPipelinesSortOrderLastRun:
+		return true
+	case SettingsValuesPipelinesSortOrderName:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SettingsValuesTelemetryWindow.
+const (
+	SettingsValuesTelemetryWindowN24h SettingsValuesTelemetryWindow = "24h"
+	SettingsValuesTelemetryWindowN30d SettingsValuesTelemetryWindow = "30d"
+	SettingsValuesTelemetryWindowN7d  SettingsValuesTelemetryWindow = "7d"
+)
+
+// Valid indicates whether the value is a known member of the SettingsValuesTelemetryWindow enum.
+func (e SettingsValuesTelemetryWindow) Valid() bool {
+	switch e {
+	case SettingsValuesTelemetryWindowN24h:
+		return true
+	case SettingsValuesTelemetryWindowN30d:
+		return true
+	case SettingsValuesTelemetryWindowN7d:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SettingsValuesTheme.
+const (
+	SettingsValuesThemeDark   SettingsValuesTheme = "dark"
+	SettingsValuesThemeLight  SettingsValuesTheme = "light"
+	SettingsValuesThemeSystem SettingsValuesTheme = "system"
+)
+
+// Valid indicates whether the value is a known member of the SettingsValuesTheme enum.
+func (e SettingsValuesTheme) Valid() bool {
+	switch e {
+	case SettingsValuesThemeDark:
+		return true
+	case SettingsValuesThemeLight:
+		return true
+	case SettingsValuesThemeSystem:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for InsightsWindow.
 const (
 	InsightsWindowN24h InsightsWindow = "24h"
@@ -967,8 +1069,9 @@ type RunSummary struct {
 	Steps []RunStep `json:"steps"`
 }
 
-// Settings defines model for Settings.
+// Settings Every setting in force, plus `defaults`: the server's documented default for each, so a client can tell whether a value is the default without keeping its own copy.
 type Settings struct {
+	Defaults              SettingsValues                `json:"defaults"`
 	ForgeFilter           SettingsForgeFilter           `json:"forgeFilter"`
 	PipelinesHealthFilter SettingsPipelinesHealthFilter `json:"pipelinesHealthFilter"`
 
@@ -1020,6 +1123,35 @@ type SettingsUpdateTelemetryWindow string
 
 // SettingsUpdateTheme defines model for SettingsUpdate.Theme.
 type SettingsUpdateTheme string
+
+// SettingsValues defines model for SettingsValues.
+type SettingsValues struct {
+	ForgeFilter           SettingsValuesForgeFilter           `json:"forgeFilter"`
+	PipelinesHealthFilter SettingsValuesPipelinesHealthFilter `json:"pipelinesHealthFilter"`
+
+	// PipelinesRepoSelector A tracked repo's id, or "all" for every repo -- not validated against an enum, since the set of valid values changes with what's currently tracked.
+	PipelinesRepoSelector string                           `json:"pipelinesRepoSelector"`
+	PipelinesSortOrder    SettingsValuesPipelinesSortOrder `json:"pipelinesSortOrder"`
+
+	// TelemetryWindow The trailing span the failure overview, root-cause and flaky views cover. Defaults to 7d.
+	TelemetryWindow SettingsValuesTelemetryWindow `json:"telemetryWindow"`
+	Theme           SettingsValuesTheme           `json:"theme"`
+}
+
+// SettingsValuesForgeFilter defines model for SettingsValues.ForgeFilter.
+type SettingsValuesForgeFilter string
+
+// SettingsValuesPipelinesHealthFilter defines model for SettingsValues.PipelinesHealthFilter.
+type SettingsValuesPipelinesHealthFilter string
+
+// SettingsValuesPipelinesSortOrder defines model for SettingsValues.PipelinesSortOrder.
+type SettingsValuesPipelinesSortOrder string
+
+// SettingsValuesTelemetryWindow The trailing span the failure overview, root-cause and flaky views cover. Defaults to 7d.
+type SettingsValuesTelemetryWindow string
+
+// SettingsValuesTheme defines model for SettingsValues.Theme.
+type SettingsValuesTheme string
 
 // StageFailureCount defines model for StageFailureCount.
 type StageFailureCount struct {
