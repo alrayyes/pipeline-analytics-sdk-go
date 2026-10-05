@@ -17,6 +17,27 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Defines values for BranchListWindow.
+const (
+	BranchListWindowN24h BranchListWindow = "24h"
+	BranchListWindowN30d BranchListWindow = "30d"
+	BranchListWindowN7d  BranchListWindow = "7d"
+)
+
+// Valid indicates whether the value is a known member of the BranchListWindow enum.
+func (e BranchListWindow) Valid() bool {
+	switch e {
+	case BranchListWindowN24h:
+		return true
+	case BranchListWindowN30d:
+		return true
+	case BranchListWindowN7d:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for FailureCategory.
 const (
 	CodeTests       FailureCategory = "code_tests"
@@ -626,6 +647,27 @@ func (e RunStatusFilter) Valid() bool {
 	}
 }
 
+// Defines values for ListBranchesParamsWindow.
+const (
+	ListBranchesParamsWindowN24h ListBranchesParamsWindow = "24h"
+	ListBranchesParamsWindowN30d ListBranchesParamsWindow = "30d"
+	ListBranchesParamsWindowN7d  ListBranchesParamsWindow = "7d"
+)
+
+// Valid indicates whether the value is a known member of the ListBranchesParamsWindow enum.
+func (e ListBranchesParamsWindow) Valid() bool {
+	switch e {
+	case ListBranchesParamsWindowN24h:
+		return true
+	case ListBranchesParamsWindowN30d:
+		return true
+	case ListBranchesParamsWindowN7d:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GetFailureInsightsParamsWindow.
 const (
 	GetFailureInsightsParamsWindowN24h GetFailureInsightsParamsWindow = "24h"
@@ -721,6 +763,25 @@ type ApiToken struct {
 	// Token The raw token value. Returned only here, at creation; store it now, it can't be retrieved again.
 	Token string `json:"token"`
 }
+
+// BranchEntry defines model for BranchEntry.
+type BranchEntry struct {
+	Name string `json:"name"`
+
+	// RunCount Runs on this branch that started in the window.
+	RunCount int `json:"runCount"`
+}
+
+// BranchList defines model for BranchList.
+type BranchList struct {
+	Branches []BranchEntry `json:"branches"`
+
+	// Window The window these counts cover: the requested one, or the server's default.
+	Window BranchListWindow `json:"window"`
+}
+
+// BranchListWindow The window these counts cover: the requested one, or the server's default.
+type BranchListWindow string
 
 // CategoryCount defines model for CategoryCount.
 type CategoryCount struct {
@@ -1290,6 +1351,21 @@ type AddCredentialParams struct {
 	Label *string `form:"label,omitempty" json:"label,omitempty"`
 }
 
+// ListBranchesParams defines parameters for ListBranches.
+type ListBranchesParams struct {
+	// RepoId Restrict the list to one tracked repo. Omitted returns every repo's pipelines.
+	RepoId *PipelineRepoIdFilter `form:"repoId,omitempty" json:"repoId,omitempty"`
+
+	// Forge Restrict the list to one forge. Omitted returns every forge.
+	Forge *RepoForgeFilter `form:"forge,omitempty" json:"forge,omitempty"`
+
+	// Window Trailing span of time the failure insights cover: `24h`, `7d` or `30d`. Unlike `Window`, this is never a run count -- a quiet and a busy pipeline would cover very different spans. Anything else falls back to `7d`.
+	Window *ListBranchesParamsWindow `form:"window,omitempty" json:"window,omitempty"`
+}
+
+// ListBranchesParamsWindow defines parameters for ListBranches.
+type ListBranchesParamsWindow string
+
 // GetFailureInsightsParams defines parameters for GetFailureInsights.
 type GetFailureInsightsParams struct {
 	// RepoId Restrict the list to one tracked repo. Omitted returns every repo's pipelines.
@@ -1666,6 +1742,13 @@ type ClientInterface interface {
 	//
 	// Corresponds with DELETE /api/auth/tokens/{tokenId} (the `RevokeApiToken` operationId).
 	RevokeApiToken(ctx context.Context, tokenId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListBranches The branches that have runs in a window, busiest first
+	//
+	// What a branch selector offers: every branch with at least one run that started in the trailing window, with how many. A run with no recorded branch is not a branch. Ordered by `runCount` descending, then name. Pass a name as `branch` to the failure insights, the run list or the flaky steps to scope them.
+	//
+	// Corresponds with GET /api/branches (the `ListBranches` operationId).
+	ListBranches(ctx context.Context, params *ListBranchesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetFailureInsights Failure aggregates over a window -- pass rate, MTTR, failure distribution, root-cause groups
 	//
@@ -2113,6 +2196,23 @@ func (c *Client) IssueApiToken(ctx context.Context, reqEditors ...RequestEditorF
 // Corresponds with DELETE /api/auth/tokens/{tokenId} (the `RevokeApiToken` operationId).
 func (c *Client) RevokeApiToken(ctx context.Context, tokenId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRevokeApiTokenRequest(c.Server, tokenId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListBranches The branches that have runs in a window, busiest first
+//
+// What a branch selector offers: every branch with at least one run that started in the trailing window, with how many. A run with no recorded branch is not a branch. Ordered by `runCount` descending, then name. Pass a name as `branch` to the failure insights, the run list or the flaky steps to scope them.
+//
+// Corresponds with GET /api/branches (the `ListBranches` operationId).
+func (c *Client) ListBranches(ctx context.Context, params *ListBranchesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBranchesRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -3022,6 +3122,84 @@ func NewRevokeApiTokenRequest(server string, tokenId string) (*http.Request, err
 	}
 
 	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListBranchesRequest constructs an http.Request for the ListBranches method
+func NewListBranchesRequest(server string, params *ListBranchesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/branches")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.RepoId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "repoId", *params.RepoId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Forge != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "forge", *params.Forge, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Window != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "window", *params.Window, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4654,6 +4832,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with DELETE /api/auth/tokens/{tokenId} (the `RevokeApiToken` operationId).
 	RevokeApiTokenWithResponse(ctx context.Context, tokenId string, reqEditors ...RequestEditorFn) (*RevokeApiTokenResponse, error)
 
+	// ListBranchesWithResponse The branches that have runs in a window, busiest first
+	//
+	// What a branch selector offers: every branch with at least one run that started in the trailing window, with how many. A run with no recorded branch is not a branch. Ordered by `runCount` descending, then name. Pass a name as `branch` to the failure insights, the run list or the flaky steps to scope them.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/branches (the `ListBranches` operationId).
+	ListBranchesWithResponse(ctx context.Context, params *ListBranchesParams, reqEditors ...RequestEditorFn) (*ListBranchesResponse, error)
+
 	// GetFailureInsightsWithResponse Failure aggregates over a window -- pass rate, MTTR, failure distribution, root-cause groups
 	//
 	// Backs the failure overview and root-cause views. "Stage" means step: forges expose workflows, jobs and steps but no stage taxonomy, so the distribution and the groups are by failing step name. `passRateDelta` compares against the preceding window of equal length. Failure categories are heuristic (step conclusion and name), never log-derived; a failure no rule matches is `uncategorised`.
@@ -5490,6 +5677,54 @@ func (r RevokeApiTokenResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r RevokeApiTokenResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListBranchesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *BranchList
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListBranchesResponse) GetJSON200() *BranchList {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListBranchesResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r ListBranchesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBranchesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBranchesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListBranchesResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -7008,6 +7243,21 @@ func (c *ClientWithResponses) RevokeApiTokenWithResponse(ctx context.Context, to
 	return ParseRevokeApiTokenResponse(rsp)
 }
 
+// ListBranchesWithResponse The branches that have runs in a window, busiest first
+//
+// What a branch selector offers: every branch with at least one run that started in the trailing window, with how many. A run with no recorded branch is not a branch. Ordered by `runCount` descending, then name. Pass a name as `branch` to the failure insights, the run list or the flaky steps to scope them.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/branches (the `ListBranches` operationId).
+func (c *ClientWithResponses) ListBranchesWithResponse(ctx context.Context, params *ListBranchesParams, reqEditors ...RequestEditorFn) (*ListBranchesResponse, error) {
+	rsp, err := c.ListBranches(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBranchesResponse(rsp)
+}
+
 // GetFailureInsightsWithResponse Failure aggregates over a window -- pass rate, MTTR, failure distribution, root-cause groups
 //
 // Backs the failure overview and root-cause views. "Stage" means step: forges expose workflows, jobs and steps but no stage taxonomy, so the distribution and the groups are by failing step name. `passRateDelta` compares against the preceding window of equal length. Failure categories are heuristic (step conclusion and name), never log-derived; a failure no rule matches is `uncategorised`.
@@ -7912,6 +8162,39 @@ func ParseRevokeApiTokenResponse(rsp *http.Response) (*RevokeApiTokenResponse, e
 			return nil, err
 		}
 		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListBranchesResponse parses an HTTP response from a ListBranchesWithResponse call
+func ParseListBranchesResponse(rsp *http.Response) (*ListBranchesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBranchesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BranchList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
 
 	}
 
