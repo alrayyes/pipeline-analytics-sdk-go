@@ -175,6 +175,88 @@ paths:
         "413":
           $ref: "#/components/responses/PayloadTooLarge"
 
+  /api/forge-tokens:
+    get:
+      operationId: listForgeTokens
+      summary: The forge tokens saved for registering repositories
+      description: >
+        Session-only. Returns each saved token in its masked form only
+        (`****1234`); no endpoint returns the token itself. At most one token
+        is saved per forge and, for Forgejo, per instance URL.
+      tags: [repos]
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Every saved token, masked
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tokens]
+                properties:
+                  tokens:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SavedForgeToken"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    put:
+      operationId: saveForgeToken
+      summary: Save a forge token, replacing the one for that forge and instance
+      description: >
+        Session-only. Stores the token encrypted at rest, like a repo's token.
+        Saving for a forge and instance that already has one replaces it. The
+        token isn't checked against the forge here: registering with it is
+        what finds out whether it works.
+      tags: [repos]
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveForgeTokenRequest"
+      responses:
+        "200":
+          description: Saved, masked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedForgeToken"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
+
+  /api/forge-tokens/{tokenId}:
+    delete:
+      operationId: deleteForgeToken
+      summary: Delete a saved forge token
+      description: >
+        Session-only. Repos already registered with it keep their own copy and
+        keep working: a saved token is a convenience for the next
+        registration, not a link from the repos that used it.
+      tags: [repos]
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: tokenId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /api/repos/identifiers:
     get:
       operationId: listRepoIdentifiers
@@ -1393,9 +1475,41 @@ components:
           type: boolean
           description: True when repos beyond this page match the filter. Always false when limit was omitted.
 
+    SavedForgeToken:
+      type: object
+      required: [id, forge, tokenMasked]
+      properties:
+        id:
+          type: string
+        forge:
+          $ref: "#/components/schemas/Forge"
+        forgejoInstanceUrl:
+          type: string
+          format: uri
+          maxLength: 2048
+          description: Set for Forgejo, absent for GitHub.
+        tokenMasked:
+          type: string
+          description: Last four characters only, e.g. "****1234". The token is never returned.
+
+    SaveForgeTokenRequest:
+      type: object
+      required: [forge, token]
+      properties:
+        forge:
+          $ref: "#/components/schemas/Forge"
+        forgejoInstanceUrl:
+          type: string
+          format: uri
+          maxLength: 2048
+        token:
+          type: string
+          minLength: 1
+          maxLength: 1024
+
     RepoRegistration:
       type: object
-      required: [forge, identifier, token]
+      required: [forge, identifier]
       properties:
         forge:
           $ref: "#/components/schemas/Forge"
@@ -1409,11 +1523,14 @@ components:
         token:
           type: string
           maxLength: 1024
-          description: Repo-scoped personal access token. Never echoed back.
+          description: >
+            Repo-scoped personal access token. Never echoed back. Omitted uses
+            the token saved for this forge and instance; a `400` with code
+            `no_saved_token` when there is none.
 
     RepoDiscoveryRequest:
       type: object
-      required: [forge, token]
+      required: [forge]
       properties:
         forge:
           $ref: "#/components/schemas/Forge"
@@ -1424,7 +1541,10 @@ components:
         token:
           type: string
           maxLength: 1024
-          description: Never stored -- used for this one lookup only.
+          description: >
+            Never stored by this call -- used for this one lookup only.
+            Omitted uses the token saved for this forge and instance; a
+            `400` with code `no_saved_token` when there is none.
 
     HealthStatus:
       type: string
