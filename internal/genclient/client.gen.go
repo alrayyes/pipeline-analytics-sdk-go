@@ -166,22 +166,22 @@ func (e IngestionStatus) Valid() bool {
 
 // Defines values for JobLogReason.
 const (
-	Expired     JobLogReason = "expired"
-	Forbidden   JobLogReason = "forbidden"
-	Unreachable JobLogReason = "unreachable"
-	Unsupported JobLogReason = "unsupported"
+	JobLogReasonExpired     JobLogReason = "expired"
+	JobLogReasonForbidden   JobLogReason = "forbidden"
+	JobLogReasonUnreachable JobLogReason = "unreachable"
+	JobLogReasonUnsupported JobLogReason = "unsupported"
 )
 
 // Valid indicates whether the value is a known member of the JobLogReason enum.
 func (e JobLogReason) Valid() bool {
 	switch e {
-	case Expired:
+	case JobLogReasonExpired:
 		return true
-	case Forbidden:
+	case JobLogReasonForbidden:
 		return true
-	case Unreachable:
+	case JobLogReasonUnreachable:
 		return true
-	case Unsupported:
+	case JobLogReasonUnsupported:
 		return true
 	default:
 		return false
@@ -1355,8 +1355,17 @@ type BadRequest = Error
 // Conflict defines model for Conflict.
 type Conflict = Error
 
+// Forbidden defines model for Forbidden.
+type Forbidden = Error
+
+// NotActionable defines model for NotActionable.
+type NotActionable = Error
+
 // NotFound defines model for NotFound.
 type NotFound = Error
+
+// NotImplemented defines model for NotImplemented.
+type NotImplemented = Error
 
 // PayloadTooLarge defines model for PayloadTooLarge.
 type PayloadTooLarge = Error
@@ -1923,12 +1932,26 @@ type ClientInterface interface {
 	// Corresponds with GET /api/runs (the `ListRuns` operationId).
 	ListRuns(ctx context.Context, params *ListRunsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// CancelRun Ask the forge to cancel a queued or running run
+	//
+	// Session-only, no MCP tool, same reasons and same outcomes as the re-run. A run that has already concluded is `409 not_actionable`. GitHub's cancel endpoint needs the `repo` scope on a classic token; for a fine-grained token this assumes Actions write, as for the re-run, which the documentation search did not state for this endpoint.
+	//
+	// Corresponds with POST /api/runs/{runId}/cancel (the `CancelRun` operationId).
+	CancelRun(ctx context.Context, runId RunId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetJobLog The tail of one job's log, fetched from the forge on demand
 	//
 	// Fetches the log from the originating forge when asked and never stores it, so the SQLite file doesn't grow with log volume and a log can't outlive the forge's own retention. Returns the last `lines` lines (200 by default). ANSI escape sequences are passed through untouched: the client renders and escapes them, and must never insert a line as HTML. A forge with no log API (Forgejo before v16, which has none), an expired log, or a token without access answers `200` with `available: false` and a `reason`, so the client can say so and still show `forgeUrl`. An unknown run or job is `404`. GitHub's log URL is a redirect that expires after a minute, so it is followed server-side and never handed to the client.
 	//
 	// Corresponds with GET /api/runs/{runId}/jobs/{jobId}/log (the `GetJobLog` operationId).
 	GetJobLog(ctx context.Context, runId RunId, jobId string, params *GetJobLogParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RerunRun Ask the forge to re-run a concluded run
+	//
+	// Session-only: an API token can't, and there is no MCP tool, because this writes to the forge. Re-runs only the failed jobs when the run failed and the whole run otherwise. The forge does the work, so `202` means it accepted the request, not that the run has finished. Needs a stored token with write access to Actions: GitHub answers a read-only token with `403 forbidden`, and the message says which permission is missing. A Forgejo run is `501 unsupported`, since Forgejo has no REST endpoint for it (found by search, not checked against a live instance). The token is never logged.
+	//
+	// Corresponds with POST /api/runs/{runId}/rerun (the `RerunRun` operationId).
+	RerunRun(ctx context.Context, runId RunId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetRunSteps One run's own steps and their statuses
 	//
@@ -2638,6 +2661,23 @@ func (c *Client) ListRuns(ctx context.Context, params *ListRunsParams, reqEditor
 	return c.Client.Do(req)
 }
 
+// CancelRun Ask the forge to cancel a queued or running run
+//
+// Session-only, no MCP tool, same reasons and same outcomes as the re-run. A run that has already concluded is `409 not_actionable`. GitHub's cancel endpoint needs the `repo` scope on a classic token; for a fine-grained token this assumes Actions write, as for the re-run, which the documentation search did not state for this endpoint.
+//
+// Corresponds with POST /api/runs/{runId}/cancel (the `CancelRun` operationId).
+func (c *Client) CancelRun(ctx context.Context, runId RunId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCancelRunRequest(c.Server, runId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetJobLog The tail of one job's log, fetched from the forge on demand
 //
 // Fetches the log from the originating forge when asked and never stores it, so the SQLite file doesn't grow with log volume and a log can't outlive the forge's own retention. Returns the last `lines` lines (200 by default). ANSI escape sequences are passed through untouched: the client renders and escapes them, and must never insert a line as HTML. A forge with no log API (Forgejo before v16, which has none), an expired log, or a token without access answers `200` with `available: false` and a `reason`, so the client can say so and still show `forgeUrl`. An unknown run or job is `404`. GitHub's log URL is a redirect that expires after a minute, so it is followed server-side and never handed to the client.
@@ -2645,6 +2685,23 @@ func (c *Client) ListRuns(ctx context.Context, params *ListRunsParams, reqEditor
 // Corresponds with GET /api/runs/{runId}/jobs/{jobId}/log (the `GetJobLog` operationId).
 func (c *Client) GetJobLog(ctx context.Context, runId RunId, jobId string, params *GetJobLogParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetJobLogRequest(c.Server, runId, jobId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RerunRun Ask the forge to re-run a concluded run
+//
+// Session-only: an API token can't, and there is no MCP tool, because this writes to the forge. Re-runs only the failed jobs when the run failed and the whole run otherwise. The forge does the work, so `202` means it accepted the request, not that the run has finished. Needs a stored token with write access to Actions: GitHub answers a read-only token with `403 forbidden`, and the message says which permission is missing. A Forgejo run is `501 unsupported`, since Forgejo has no REST endpoint for it (found by search, not checked against a live instance). The token is never logged.
+//
+// Corresponds with POST /api/runs/{runId}/rerun (the `RerunRun` operationId).
+func (c *Client) RerunRun(ctx context.Context, runId RunId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRerunRunRequest(c.Server, runId)
 	if err != nil {
 		return nil, err
 	}
@@ -4337,6 +4394,40 @@ func NewListRunsRequest(server string, params *ListRunsParams) (*http.Request, e
 	return req, nil
 }
 
+// NewCancelRunRequest constructs an http.Request for the CancelRun method
+func NewCancelRunRequest(server string, runId RunId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "runId", runId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/runs/%s/cancel", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetJobLogRequest constructs an http.Request for the GetJobLog method
 func NewGetJobLogRequest(server string, runId RunId, jobId string, params *GetJobLogParams) (*http.Request, error) {
 	var err error
@@ -4398,6 +4489,40 @@ func NewGetJobLogRequest(server string, runId RunId, jobId string, params *GetJo
 	}
 
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRerunRunRequest constructs an http.Request for the RerunRun method
+func NewRerunRunRequest(server string, runId RunId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "runId", runId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/runs/%s/rerun", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -5245,6 +5370,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/runs (the `ListRuns` operationId).
 	ListRunsWithResponse(ctx context.Context, params *ListRunsParams, reqEditors ...RequestEditorFn) (*ListRunsResponse, error)
 
+	// CancelRunWithResponse Ask the forge to cancel a queued or running run
+	//
+	// Session-only, no MCP tool, same reasons and same outcomes as the re-run. A run that has already concluded is `409 not_actionable`. GitHub's cancel endpoint needs the `repo` scope on a classic token; for a fine-grained token this assumes Actions write, as for the re-run, which the documentation search did not state for this endpoint.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/runs/{runId}/cancel (the `CancelRun` operationId).
+	CancelRunWithResponse(ctx context.Context, runId RunId, reqEditors ...RequestEditorFn) (*CancelRunResponse, error)
+
 	// GetJobLogWithResponse The tail of one job's log, fetched from the forge on demand
 	//
 	// Fetches the log from the originating forge when asked and never stores it, so the SQLite file doesn't grow with log volume and a log can't outlive the forge's own retention. Returns the last `lines` lines (200 by default). ANSI escape sequences are passed through untouched: the client renders and escapes them, and must never insert a line as HTML. A forge with no log API (Forgejo before v16, which has none), an expired log, or a token without access answers `200` with `available: false` and a `reason`, so the client can say so and still show `forgeUrl`. An unknown run or job is `404`. GitHub's log URL is a redirect that expires after a minute, so it is followed server-side and never handed to the client.
@@ -5253,6 +5387,15 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/runs/{runId}/jobs/{jobId}/log (the `GetJobLog` operationId).
 	GetJobLogWithResponse(ctx context.Context, runId RunId, jobId string, params *GetJobLogParams, reqEditors ...RequestEditorFn) (*GetJobLogResponse, error)
+
+	// RerunRunWithResponse Ask the forge to re-run a concluded run
+	//
+	// Session-only: an API token can't, and there is no MCP tool, because this writes to the forge. Re-runs only the failed jobs when the run failed and the whole run otherwise. The forge does the work, so `202` means it accepted the request, not that the run has finished. Needs a stored token with write access to Actions: GitHub answers a read-only token with `403 forbidden`, and the message says which permission is missing. A Forgejo run is `501 unsupported`, since Forgejo has no REST endpoint for it (found by search, not checked against a live instance). The token is never logged.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/runs/{runId}/rerun (the `RerunRun` operationId).
+	RerunRunWithResponse(ctx context.Context, runId RunId, reqEditors ...RequestEditorFn) (*RerunRunResponse, error)
 
 	// GetRunStepsWithResponse One run's own steps and their statuses
 	//
@@ -6937,6 +7080,82 @@ func (r ListRunsResponse) ContentType() string {
 	return ""
 }
 
+type CancelRunResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *NotFound
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *NotActionable
+	// JSON501 the response for an HTTP 501 `application/json` response
+	JSON501 *NotImplemented
+	// JSON502 the response for an HTTP 502 `application/json` response
+	JSON502 *BadGateway
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r CancelRunResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r CancelRunResponse) GetJSON403() *Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r CancelRunResponse) GetJSON404() *NotFound {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r CancelRunResponse) GetJSON409() *NotActionable {
+	return r.JSON409
+}
+
+// GetJSON501 returns the response for an HTTP 501 `application/json` response
+func (r CancelRunResponse) GetJSON501() *NotImplemented {
+	return r.JSON501
+}
+
+// GetJSON502 returns the response for an HTTP 502 `application/json` response
+func (r CancelRunResponse) GetJSON502() *BadGateway {
+	return r.JSON502
+}
+
+// GetBody returns the raw response body bytes
+func (r CancelRunResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CancelRunResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CancelRunResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CancelRunResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetJobLogResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -6986,6 +7205,82 @@ func (r GetJobLogResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetJobLogResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type RerunRunResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON403 the response for an HTTP 403 `application/json` response
+	JSON403 *Forbidden
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *NotFound
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *NotActionable
+	// JSON501 the response for an HTTP 501 `application/json` response
+	JSON501 *NotImplemented
+	// JSON502 the response for an HTTP 502 `application/json` response
+	JSON502 *BadGateway
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r RerunRunResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON403 returns the response for an HTTP 403 `application/json` response
+func (r RerunRunResponse) GetJSON403() *Forbidden {
+	return r.JSON403
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r RerunRunResponse) GetJSON404() *NotFound {
+	return r.JSON404
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r RerunRunResponse) GetJSON409() *NotActionable {
+	return r.JSON409
+}
+
+// GetJSON501 returns the response for an HTTP 501 `application/json` response
+func (r RerunRunResponse) GetJSON501() *NotImplemented {
+	return r.JSON501
+}
+
+// GetJSON502 returns the response for an HTTP 502 `application/json` response
+func (r RerunRunResponse) GetJSON502() *BadGateway {
+	return r.JSON502
+}
+
+// GetBody returns the raw response body bytes
+func (r RerunRunResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RerunRunResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RerunRunResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RerunRunResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -7986,6 +8281,21 @@ func (c *ClientWithResponses) ListRunsWithResponse(ctx context.Context, params *
 	return ParseListRunsResponse(rsp)
 }
 
+// CancelRunWithResponse Ask the forge to cancel a queued or running run
+//
+// Session-only, no MCP tool, same reasons and same outcomes as the re-run. A run that has already concluded is `409 not_actionable`. GitHub's cancel endpoint needs the `repo` scope on a classic token; for a fine-grained token this assumes Actions write, as for the re-run, which the documentation search did not state for this endpoint.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/runs/{runId}/cancel (the `CancelRun` operationId).
+func (c *ClientWithResponses) CancelRunWithResponse(ctx context.Context, runId RunId, reqEditors ...RequestEditorFn) (*CancelRunResponse, error) {
+	rsp, err := c.CancelRun(ctx, runId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCancelRunResponse(rsp)
+}
+
 // GetJobLogWithResponse The tail of one job's log, fetched from the forge on demand
 //
 // Fetches the log from the originating forge when asked and never stores it, so the SQLite file doesn't grow with log volume and a log can't outlive the forge's own retention. Returns the last `lines` lines (200 by default). ANSI escape sequences are passed through untouched: the client renders and escapes them, and must never insert a line as HTML. A forge with no log API (Forgejo before v16, which has none), an expired log, or a token without access answers `200` with `available: false` and a `reason`, so the client can say so and still show `forgeUrl`. An unknown run or job is `404`. GitHub's log URL is a redirect that expires after a minute, so it is followed server-side and never handed to the client.
@@ -7999,6 +8309,21 @@ func (c *ClientWithResponses) GetJobLogWithResponse(ctx context.Context, runId R
 		return nil, err
 	}
 	return ParseGetJobLogResponse(rsp)
+}
+
+// RerunRunWithResponse Ask the forge to re-run a concluded run
+//
+// Session-only: an API token can't, and there is no MCP tool, because this writes to the forge. Re-runs only the failed jobs when the run failed and the whole run otherwise. The forge does the work, so `202` means it accepted the request, not that the run has finished. Needs a stored token with write access to Actions: GitHub answers a read-only token with `403 forbidden`, and the message says which permission is missing. A Forgejo run is `501 unsupported`, since Forgejo has no REST endpoint for it (found by search, not checked against a live instance). The token is never logged.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/runs/{runId}/rerun (the `RerunRun` operationId).
+func (c *ClientWithResponses) RerunRunWithResponse(ctx context.Context, runId RunId, reqEditors ...RequestEditorFn) (*RerunRunResponse, error) {
+	rsp, err := c.RerunRun(ctx, runId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRerunRunResponse(rsp)
 }
 
 // GetRunStepsWithResponse One run's own steps and their statuses
@@ -9379,6 +9704,70 @@ func ParseListRunsResponse(rsp *http.Response) (*ListRunsResponse, error) {
 	return response, nil
 }
 
+// ParseCancelRunResponse parses an HTTP response from a CancelRunWithResponse call
+func ParseCancelRunResponse(rsp *http.Response) (*CancelRunResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CancelRunResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 202:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest NotActionable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
+		var dest NotImplemented
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON501 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 502:
+		var dest BadGateway
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON502 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetJobLogResponse parses an HTTP response from a GetJobLogWithResponse call
 func ParseGetJobLogResponse(rsp *http.Response) (*GetJobLogResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -9413,6 +9802,70 @@ func ParseGetJobLogResponse(rsp *http.Response) (*GetJobLogResponse, error) {
 			return nil, err
 		}
 		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRerunRunResponse parses an HTTP response from a RerunRunWithResponse call
+func ParseRerunRunResponse(rsp *http.Response) (*RerunRunResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RerunRunResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 202:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest Forbidden
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest NotActionable
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
+		var dest NotImplemented
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON501 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 502:
+		var dest BadGateway
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON502 = &dest
 
 	}
 
