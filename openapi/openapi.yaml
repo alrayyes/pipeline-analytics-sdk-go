@@ -1183,7 +1183,7 @@ components:
           type: string
           description: 'The build''s tagged version (e.g. "v1.2.3"), or "dev" for an untagged local build.'
 
-    Settings:
+    SettingsValues:
       type: object
       required:
         [
@@ -1218,6 +1218,19 @@ components:
           type: string
           enum: ["24h", "7d", "30d"]
           description: The trailing span the failure overview, root-cause and flaky views cover. Defaults to 7d.
+
+    Settings:
+      description: >
+        Every setting in force, plus `defaults`: the server's documented
+        default for each, so a client can tell whether a value is the
+        default without keeping its own copy.
+      allOf:
+        - $ref: "#/components/schemas/SettingsValues"
+        - type: object
+          required: [defaults]
+          properties:
+            defaults:
+              $ref: "#/components/schemas/SettingsValues"
 
     SettingsUpdate:
       type: object
