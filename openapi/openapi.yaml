@@ -500,6 +500,72 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /api/runs/{runId}/rerun:
+    post:
+      operationId: rerunRun
+      summary: Ask the forge to re-run a concluded run
+      description: >
+        Session-only: an API token can't, and there is no MCP tool, because
+        this writes to the forge. Re-runs only the failed jobs when the run
+        failed and the whole run otherwise. The forge does the work, so `202`
+        means it accepted the request, not that the run has finished. Needs a
+        stored token with write access to Actions: GitHub answers a read-only
+        token with `403 forbidden`, and the message says which permission is
+        missing. A Forgejo run is `501 unsupported`, since Forgejo has no REST
+        endpoint for it (found by search, not checked against a live
+        instance). The token is never logged.
+      tags: [pipelines]
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      responses:
+        "202":
+          description: The forge accepted the request
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/NotActionable"
+        "501":
+          $ref: "#/components/responses/NotImplemented"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+
+  /api/runs/{runId}/cancel:
+    post:
+      operationId: cancelRun
+      summary: Ask the forge to cancel a queued or running run
+      description: >
+        Session-only, no MCP tool, same reasons and same outcomes as the
+        re-run. A run that has already concluded is `409 not_actionable`.
+        GitHub's cancel endpoint needs the `repo` scope on a classic token; for
+        a fine-grained token this assumes Actions write, as for the re-run,
+        which the documentation search did not state for this endpoint.
+      tags: [pipelines]
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      responses:
+        "202":
+          description: The forge accepted the request
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/NotActionable"
+        "501":
+          $ref: "#/components/responses/NotImplemented"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+
   /api/runs/{runId}/jobs/{jobId}/log:
     get:
       operationId: getJobLog
@@ -1279,6 +1345,24 @@ components:
             $ref: "#/components/schemas/Error"
     BadGateway:
       description: The originating forge rejected the request or couldn't be reached
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: The stored token can't do this; the message says which permission is missing
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotActionable:
+      description: The run's state doesn't allow this (re-running one that hasn't concluded, cancelling one that has)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotImplemented:
+      description: The run's forge has no API for this
       content:
         application/json:
           schema:
