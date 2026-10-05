@@ -543,6 +543,31 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
+  /api/branches:
+    get:
+      operationId: listBranches
+      summary: The branches that have runs in a window, busiest first
+      description: >
+        What a branch selector offers: every branch with at least one run that
+        started in the trailing window, with how many. A run with no recorded
+        branch is not a branch. Ordered by `runCount` descending, then name.
+        Pass a name as `branch` to the failure insights, the run list or the
+        flaky steps to scope them.
+      tags: [insights]
+      parameters:
+        - $ref: "#/components/parameters/PipelineRepoIdFilter"
+        - $ref: "#/components/parameters/RepoForgeFilter"
+        - $ref: "#/components/parameters/InsightsWindow"
+      responses:
+        "200":
+          description: The branches with runs in the window
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BranchList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /api/insights/failures:
     get:
       operationId: getFailureInsights
@@ -1820,6 +1845,32 @@ components:
         hasMore:
           type: boolean
           description: True when flaky steps beyond this page exist. Always false when limit was omitted.
+
+    BranchList:
+      type: object
+      required: [window, branches]
+      properties:
+        window:
+          type: string
+          enum: ["24h", "7d", "30d"]
+          description: >
+            The window these counts cover: the requested one, or the
+            server's default.
+        branches:
+          type: array
+          items:
+            $ref: "#/components/schemas/BranchEntry"
+
+    BranchEntry:
+      type: object
+      required: [name, runCount]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        runCount:
+          type: integer
+          description: Runs on this branch that started in the window.
 
     FailureInsights:
       type: object
