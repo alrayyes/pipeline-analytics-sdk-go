@@ -418,6 +418,51 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /api/runs/{runId}/jobs/{jobId}/log:
+    get:
+      operationId: getJobLog
+      summary: The tail of one job's log, fetched from the forge on demand
+      description: >
+        Fetches the log from the originating forge when asked and never stores
+        it, so the SQLite file doesn't grow with log volume and a log can't
+        outlive the forge's own retention. Returns the last `lines` lines (200
+        by default). ANSI escape sequences are passed through untouched: the
+        client renders and escapes them, and must never insert a line as
+        HTML. A forge with no log API (Forgejo before v16, which has none),
+        an expired log, or a token without access answers `200` with
+        `available: false` and a `reason`, so the client can say so and still
+        show `forgeUrl`. An unknown run or job is `404`. GitHub's log URL is a
+        redirect that expires after a minute, so it is followed server-side
+        and never handed to the client.
+      tags: [pipelines]
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: A `jobId` from GET /api/runs/{runId}/steps.
+        - name: lines
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 200
+      responses:
+        "200":
+          description: The log tail, or why there isn't one
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobLog"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /api/insights/github-rate-limit:
     get:
       operationId: getGitHubRateLimitInsights
@@ -1495,6 +1540,9 @@ components:
       type: object
       required: [name, status, outcome]
       properties:
+        jobId:
+          type: string
+          description: The job this step ran in; pass it to GET /api/runs/{runId}/jobs/{jobId}/log.
         name:
           type: string
         status:
@@ -1507,6 +1555,38 @@ components:
           type: string
           format: uri
           description: Deep link to this exact occurrence's job on the originating forge.
+
+    JobLog:
+      type: object
+      required: [available, forgeUrl, lines, truncated]
+      properties:
+        available:
+          type: boolean
+          description: False when the forge gave no log; see `reason`. `lines` is then empty.
+        reason:
+          type: string
+          enum: [unsupported, expired, forbidden, unreachable]
+          description: >
+            Present when `available` is false. `unsupported`: the forge has no
+            log API. `expired`: the forge no longer has this log. `forbidden`:
+            the stored token can't read it. `unreachable`: the forge didn't
+            answer.
+        lines:
+          type: array
+          maxItems: 1000
+          items:
+            type: string
+            maxLength: 4096
+          description: >
+            The last lines of the log, oldest first, each cut at 4096
+            characters. Raw text, ANSI sequences included.
+        truncated:
+          type: boolean
+          description: True when the log had more lines than were returned.
+        forgeUrl:
+          type: string
+          format: uri
+          description: Deep link to the job on the forge, always present.
 
     RunDetail:
       type: object

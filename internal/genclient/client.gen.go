@@ -143,6 +143,30 @@ func (e IngestionStatus) Valid() bool {
 	}
 }
 
+// Defines values for JobLogReason.
+const (
+	Expired     JobLogReason = "expired"
+	Forbidden   JobLogReason = "forbidden"
+	Unreachable JobLogReason = "unreachable"
+	Unsupported JobLogReason = "unsupported"
+)
+
+// Valid indicates whether the value is a known member of the JobLogReason enum.
+func (e JobLogReason) Valid() bool {
+	switch e {
+	case Expired:
+		return true
+	case Forbidden:
+		return true
+	case Unreachable:
+		return true
+	case Unsupported:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Outcome.
 const (
 	OutcomeCancelled Outcome = "cancelled"
@@ -746,6 +770,27 @@ type HealthStatus string
 // IngestionStatus defines model for IngestionStatus.
 type IngestionStatus string
 
+// JobLog defines model for JobLog.
+type JobLog struct {
+	// Available False when the forge gave no log; see `reason`. `lines` is then empty.
+	Available bool `json:"available"`
+
+	// ForgeUrl Deep link to the job on the forge, always present.
+	ForgeUrl string `json:"forgeUrl"`
+
+	// Lines The last lines of the log, oldest first, each cut at 4096 characters. Raw text, ANSI sequences included.
+	Lines []string `json:"lines"`
+
+	// Reason Present when `available` is false. `unsupported`: the forge has no log API. `expired`: the forge no longer has this log. `forbidden`: the stored token can't read it. `unreachable`: the forge didn't answer.
+	Reason *JobLogReason `json:"reason,omitempty"`
+
+	// Truncated True when the log had more lines than were returned.
+	Truncated bool `json:"truncated"`
+}
+
+// JobLogReason Present when `available` is false. `unsupported`: the forge has no log API. `expired`: the forge no longer has this log. `forbidden`: the stored token can't read it. `unreachable`: the forge didn't answer.
+type JobLogReason string
+
 // Outcome What a run's or step's forge state means, computed by the server so no client interprets status strings. `failed` covers a `failure` or `timed_out` conclusion; a conclusion wins over a stale status; `running` and `queued` are work still pending (the run list's `running` filter covers both); a state the server doesn't recognise is `unknown`, never `passed`.
 type Outcome string
 
@@ -874,7 +919,10 @@ type RunStep struct {
 
 	// ForgeUrl Deep link to this exact occurrence's job on the originating forge.
 	ForgeUrl *string `json:"forgeUrl,omitempty"`
-	Name     string  `json:"name"`
+
+	// JobId The job this step ran in; pass it to GET /api/runs/{runId}/jobs/{jobId}/log.
+	JobId *string `json:"jobId,omitempty"`
+	Name  string  `json:"name"`
 
 	// Outcome What a run's or step's forge state means, computed by the server so no client interprets status strings. `failed` covers a `failure` or `timed_out` conclusion; a conclusion wins over a stale status; `running` and `queued` are work still pending (the run list's `running` filter covers both); a state the server doesn't recognise is `unknown`, never `passed`.
 	Outcome Outcome `json:"outcome"`
@@ -1219,6 +1267,11 @@ type ListRunsParams struct {
 
 // ListRunsParamsStatus defines parameters for ListRuns.
 type ListRunsParamsStatus string
+
+// GetJobLogParams defines parameters for GetJobLog.
+type GetJobLogParams struct {
+	Lines *int `form:"lines,omitempty" json:"lines,omitempty"`
+}
 
 // ListFlakyStepsParams defines parameters for ListFlakySteps.
 type ListFlakyStepsParams struct {
@@ -1588,6 +1641,13 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/runs (the `ListRuns` operationId).
 	ListRuns(ctx context.Context, params *ListRunsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetJobLog The tail of one job's log, fetched from the forge on demand
+	//
+	// Fetches the log from the originating forge when asked and never stores it, so the SQLite file doesn't grow with log volume and a log can't outlive the forge's own retention. Returns the last `lines` lines (200 by default). ANSI escape sequences are passed through untouched: the client renders and escapes them, and must never insert a line as HTML. A forge with no log API (Forgejo before v16, which has none), an expired log, or a token without access answers `200` with `available: false` and a `reason`, so the client can say so and still show `forgeUrl`. An unknown run or job is `404`. GitHub's log URL is a redirect that expires after a minute, so it is followed server-side and never handed to the client.
+	//
+	// Corresponds with GET /api/runs/{runId}/jobs/{jobId}/log (the `GetJobLog` operationId).
+	GetJobLog(ctx context.Context, runId RunId, jobId string, params *GetJobLogParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetRunSteps One run's own steps and their statuses
 	//
@@ -2198,6 +2258,23 @@ func (c *Client) GetRepoUsage(ctx context.Context, repoId RepoId, params *GetRep
 // Corresponds with GET /api/runs (the `ListRuns` operationId).
 func (c *Client) ListRuns(ctx context.Context, params *ListRunsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListRunsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetJobLog The tail of one job's log, fetched from the forge on demand
+//
+// Fetches the log from the originating forge when asked and never stores it, so the SQLite file doesn't grow with log volume and a log can't outlive the forge's own retention. Returns the last `lines` lines (200 by default). ANSI escape sequences are passed through untouched: the client renders and escapes them, and must never insert a line as HTML. A forge with no log API (Forgejo before v16, which has none), an expired log, or a token without access answers `200` with `available: false` and a `reason`, so the client can say so and still show `forgeUrl`. An unknown run or job is `404`. GitHub's log URL is a redirect that expires after a minute, so it is followed server-side and never handed to the client.
+//
+// Corresponds with GET /api/runs/{runId}/jobs/{jobId}/log (the `GetJobLog` operationId).
+func (c *Client) GetJobLog(ctx context.Context, runId RunId, jobId string, params *GetJobLogParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetJobLogRequest(c.Server, runId, jobId, params)
 	if err != nil {
 		return nil, err
 	}
@@ -3687,6 +3764,74 @@ func NewListRunsRequest(server string, params *ListRunsParams) (*http.Request, e
 	return req, nil
 }
 
+// NewGetJobLogRequest constructs an http.Request for the GetJobLog method
+func NewGetJobLogRequest(server string, runId RunId, jobId string, params *GetJobLogParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "runId", runId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "jobId", jobId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/runs/%s/jobs/%s/log", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Lines != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "lines", *params.Lines, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetRunStepsRequest constructs an http.Request for the GetRunSteps method
 func NewGetRunStepsRequest(server string, runId RunId) (*http.Request, error) {
 	var err error
@@ -4469,6 +4614,15 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/runs (the `ListRuns` operationId).
 	ListRunsWithResponse(ctx context.Context, params *ListRunsParams, reqEditors ...RequestEditorFn) (*ListRunsResponse, error)
+
+	// GetJobLogWithResponse The tail of one job's log, fetched from the forge on demand
+	//
+	// Fetches the log from the originating forge when asked and never stores it, so the SQLite file doesn't grow with log volume and a log can't outlive the forge's own retention. Returns the last `lines` lines (200 by default). ANSI escape sequences are passed through untouched: the client renders and escapes them, and must never insert a line as HTML. A forge with no log API (Forgejo before v16, which has none), an expired log, or a token without access answers `200` with `available: false` and a `reason`, so the client can say so and still show `forgeUrl`. An unknown run or job is `404`. GitHub's log URL is a redirect that expires after a minute, so it is followed server-side and never handed to the client.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/runs/{runId}/jobs/{jobId}/log (the `GetJobLog` operationId).
+	GetJobLogWithResponse(ctx context.Context, runId RunId, jobId string, params *GetJobLogParams, reqEditors ...RequestEditorFn) (*GetJobLogResponse, error)
 
 	// GetRunStepsWithResponse One run's own steps and their statuses
 	//
@@ -5936,6 +6090,61 @@ func (r ListRunsResponse) ContentType() string {
 	return ""
 }
 
+type GetJobLogResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *JobLog
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *NotFound
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetJobLogResponse) GetJSON200() *JobLog {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetJobLogResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetJobLogResponse) GetJSON404() *NotFound {
+	return r.JSON404
+}
+
+// GetBody returns the raw response body bytes
+func (r GetJobLogResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetJobLogResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetJobLogResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetJobLogResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetRunStepsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -6846,6 +7055,21 @@ func (c *ClientWithResponses) ListRunsWithResponse(ctx context.Context, params *
 		return nil, err
 	}
 	return ParseListRunsResponse(rsp)
+}
+
+// GetJobLogWithResponse The tail of one job's log, fetched from the forge on demand
+//
+// Fetches the log from the originating forge when asked and never stores it, so the SQLite file doesn't grow with log volume and a log can't outlive the forge's own retention. Returns the last `lines` lines (200 by default). ANSI escape sequences are passed through untouched: the client renders and escapes them, and must never insert a line as HTML. A forge with no log API (Forgejo before v16, which has none), an expired log, or a token without access answers `200` with `available: false` and a `reason`, so the client can say so and still show `forgeUrl`. An unknown run or job is `404`. GitHub's log URL is a redirect that expires after a minute, so it is followed server-side and never handed to the client.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/runs/{runId}/jobs/{jobId}/log (the `GetJobLog` operationId).
+func (c *ClientWithResponses) GetJobLogWithResponse(ctx context.Context, runId RunId, jobId string, params *GetJobLogParams, reqEditors ...RequestEditorFn) (*GetJobLogResponse, error) {
+	rsp, err := c.GetJobLog(ctx, runId, jobId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetJobLogResponse(rsp)
 }
 
 // GetRunStepsWithResponse One run's own steps and their statuses
@@ -8062,6 +8286,46 @@ func ParseListRunsResponse(rsp *http.Response) (*ListRunsResponse, error) {
 			return nil, err
 		}
 		response.JSON401 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetJobLogResponse parses an HTTP response from a GetJobLogWithResponse call
+func ParseGetJobLogResponse(rsp *http.Response) (*GetJobLogResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetJobLogResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest JobLog
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	}
 
