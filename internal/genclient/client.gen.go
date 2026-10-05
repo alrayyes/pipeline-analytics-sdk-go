@@ -1041,8 +1041,8 @@ type RepoDiscoveryRequest struct {
 	Forge              Forge   `json:"forge"`
 	ForgejoInstanceUrl *string `json:"forgejoInstanceUrl,omitempty"`
 
-	// Token Never stored -- used for this one lookup only.
-	Token string `json:"token"`
+	// Token Never stored by this call -- used for this one lookup only. Omitted uses the token saved for this forge and instance; a `400` with code `no_saved_token` when there is none.
+	Token *string `json:"token,omitempty"`
 }
 
 // RepoList defines model for RepoList.
@@ -1058,8 +1058,8 @@ type RepoRegistration struct {
 	ForgejoInstanceUrl *string `json:"forgejoInstanceUrl,omitempty"`
 	Identifier         string  `json:"identifier"`
 
-	// Token Repo-scoped personal access token. Never echoed back.
-	Token string `json:"token"`
+	// Token Repo-scoped personal access token. Never echoed back. Omitted uses the token saved for this forge and instance; a `400` with code `no_saved_token` when there is none.
+	Token *string `json:"token,omitempty"`
 }
 
 // RunDetail defines model for RunDetail.
@@ -1128,6 +1128,25 @@ type RunSummary struct {
 
 	// Steps The run's steps in recorded order.
 	Steps []RunStep `json:"steps"`
+}
+
+// SaveForgeTokenRequest defines model for SaveForgeTokenRequest.
+type SaveForgeTokenRequest struct {
+	Forge              Forge   `json:"forge"`
+	ForgejoInstanceUrl *string `json:"forgejoInstanceUrl,omitempty"`
+	Token              string  `json:"token"`
+}
+
+// SavedForgeToken defines model for SavedForgeToken.
+type SavedForgeToken struct {
+	Forge Forge `json:"forge"`
+
+	// ForgejoInstanceUrl Set for Forgejo, absent for GitHub.
+	ForgejoInstanceUrl *string `json:"forgejoInstanceUrl,omitempty"`
+	Id                 string  `json:"id"`
+
+	// TokenMasked Last four characters only, e.g. "****1234". The token is never returned.
+	TokenMasked string `json:"tokenMasked"`
 }
 
 // Settings Every setting in force, plus `defaults`: the server's documented default for each, so a client can tell whether a value is the default without keeping its own copy.
@@ -1555,6 +1574,9 @@ type WebauthnLoginJSONRequestBody = WebAuthnAssertionResponse
 // WebauthnRegisterJSONRequestBody defines body for WebauthnRegister for application/json ContentType.
 type WebauthnRegisterJSONRequestBody = WebAuthnAttestationResponse
 
+// SaveForgeTokenJSONRequestBody defines body for SaveForgeToken for application/json ContentType.
+type SaveForgeTokenJSONRequestBody = SaveForgeTokenRequest
+
 // McpEndpointJSONRequestBody defines body for McpEndpoint for application/json ContentType.
 type McpEndpointJSONRequestBody = McpEndpointJSONBody
 
@@ -1749,6 +1771,38 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/branches (the `ListBranches` operationId).
 	ListBranches(ctx context.Context, params *ListBranchesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListForgeTokens The forge tokens saved for registering repositories
+	//
+	// Session-only. Returns each saved token in its masked form only (`****1234`); no endpoint returns the token itself. At most one token is saved per forge and, for Forgejo, per instance URL.
+	//
+	// Corresponds with GET /api/forge-tokens (the `ListForgeTokens` operationId).
+	ListForgeTokens(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SaveForgeTokenWithBody Save a forge token, replacing the one for that forge and instance
+	//
+	// Session-only. Stores the token encrypted at rest, like a repo's token. Saving for a forge and instance that already has one replaces it. The token isn't checked against the forge here: registering with it is what finds out whether it works.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/forge-tokens (the `SaveForgeToken` operationId).
+	SaveForgeTokenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SaveForgeToken Save a forge token, replacing the one for that forge and instance
+	//
+	// Session-only. Stores the token encrypted at rest, like a repo's token. Saving for a forge and instance that already has one replaces it. The token isn't checked against the forge here: registering with it is what finds out whether it works.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/forge-tokens (the `SaveForgeToken` operationId).
+	SaveForgeToken(ctx context.Context, body SaveForgeTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteForgeToken Delete a saved forge token
+	//
+	// Session-only. Repos already registered with it keep their own copy and keep working: a saved token is a convenience for the next registration, not a link from the repos that used it.
+	//
+	// Corresponds with DELETE /api/forge-tokens/{tokenId} (the `DeleteForgeToken` operationId).
+	DeleteForgeToken(ctx context.Context, tokenId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetFailureInsights Failure aggregates over a window -- pass rate, MTTR, failure distribution, root-cause groups
 	//
@@ -2213,6 +2267,78 @@ func (c *Client) RevokeApiToken(ctx context.Context, tokenId string, reqEditors 
 // Corresponds with GET /api/branches (the `ListBranches` operationId).
 func (c *Client) ListBranches(ctx context.Context, params *ListBranchesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListBranchesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListForgeTokens The forge tokens saved for registering repositories
+//
+// Session-only. Returns each saved token in its masked form only (`****1234`); no endpoint returns the token itself. At most one token is saved per forge and, for Forgejo, per instance URL.
+//
+// Corresponds with GET /api/forge-tokens (the `ListForgeTokens` operationId).
+func (c *Client) ListForgeTokens(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListForgeTokensRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SaveForgeTokenWithBody Save a forge token, replacing the one for that forge and instance
+//
+// Session-only. Stores the token encrypted at rest, like a repo's token. Saving for a forge and instance that already has one replaces it. The token isn't checked against the forge here: registering with it is what finds out whether it works.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/forge-tokens (the `SaveForgeToken` operationId).
+func (c *Client) SaveForgeTokenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSaveForgeTokenRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// SaveForgeToken Save a forge token, replacing the one for that forge and instance
+//
+// Session-only. Stores the token encrypted at rest, like a repo's token. Saving for a forge and instance that already has one replaces it. The token isn't checked against the forge here: registering with it is what finds out whether it works.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/forge-tokens (the `SaveForgeToken` operationId).
+func (c *Client) SaveForgeToken(ctx context.Context, body SaveForgeTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSaveForgeTokenRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteForgeToken Delete a saved forge token
+//
+// Session-only. Repos already registered with it keep their own copy and keep working: a saved token is a convenience for the next registration, not a link from the repos that used it.
+//
+// Corresponds with DELETE /api/forge-tokens/{tokenId} (the `DeleteForgeToken` operationId).
+func (c *Client) DeleteForgeToken(ctx context.Context, tokenId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteForgeTokenRequest(c.Server, tokenId)
 	if err != nil {
 		return nil, err
 	}
@@ -3200,6 +3326,107 @@ func NewListBranchesRequest(server string, params *ListBranchesParams) (*http.Re
 	}
 
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListForgeTokensRequest constructs an http.Request for the ListForgeTokens method
+func NewListForgeTokensRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/forge-tokens")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSaveForgeTokenRequest calls the generic SaveForgeToken builder with application/json body
+func NewSaveForgeTokenRequest(server string, body SaveForgeTokenJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSaveForgeTokenRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewSaveForgeTokenRequestWithBody constructs an http.Request for the SaveForgeToken method, with any body, and a specified content type
+func NewSaveForgeTokenRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/forge-tokens")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteForgeTokenRequest constructs an http.Request for the DeleteForgeToken method
+func NewDeleteForgeTokenRequest(server string, tokenId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "tokenId", tokenId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/forge-tokens/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4841,6 +5068,42 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/branches (the `ListBranches` operationId).
 	ListBranchesWithResponse(ctx context.Context, params *ListBranchesParams, reqEditors ...RequestEditorFn) (*ListBranchesResponse, error)
 
+	// ListForgeTokensWithResponse The forge tokens saved for registering repositories
+	//
+	// Session-only. Returns each saved token in its masked form only (`****1234`); no endpoint returns the token itself. At most one token is saved per forge and, for Forgejo, per instance URL.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/forge-tokens (the `ListForgeTokens` operationId).
+	ListForgeTokensWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListForgeTokensResponse, error)
+
+	// SaveForgeTokenWithBodyWithResponse Save a forge token, replacing the one for that forge and instance
+	//
+	// Session-only. Stores the token encrypted at rest, like a repo's token. Saving for a forge and instance that already has one replaces it. The token isn't checked against the forge here: registering with it is what finds out whether it works.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/forge-tokens (the `SaveForgeToken` operationId).
+	SaveForgeTokenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SaveForgeTokenResponse, error)
+
+	// SaveForgeTokenWithResponse Save a forge token, replacing the one for that forge and instance
+	//
+	// Session-only. Stores the token encrypted at rest, like a repo's token. Saving for a forge and instance that already has one replaces it. The token isn't checked against the forge here: registering with it is what finds out whether it works.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/forge-tokens (the `SaveForgeToken` operationId).
+	SaveForgeTokenWithResponse(ctx context.Context, body SaveForgeTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*SaveForgeTokenResponse, error)
+
+	// DeleteForgeTokenWithResponse Delete a saved forge token
+	//
+	// Session-only. Repos already registered with it keep their own copy and keep working: a saved token is a convenience for the next registration, not a link from the repos that used it.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /api/forge-tokens/{tokenId} (the `DeleteForgeToken` operationId).
+	DeleteForgeTokenWithResponse(ctx context.Context, tokenId string, reqEditors ...RequestEditorFn) (*DeleteForgeTokenResponse, error)
+
 	// GetFailureInsightsWithResponse Failure aggregates over a window -- pass rate, MTTR, failure distribution, root-cause groups
 	//
 	// Backs the failure overview and root-cause views. "Stage" means step: forges expose workflows, jobs and steps but no stage taxonomy, so the distribution and the groups are by failing step name. `passRateDelta` compares against the preceding window of equal length. Failure categories are heuristic (step conclusion and name), never log-derived; a failure no rule matches is `uncategorised`.
@@ -5725,6 +5988,168 @@ func (r ListBranchesResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ListBranchesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListForgeTokensResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *struct {
+		Tokens []SavedForgeToken `json:"tokens"`
+	}
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListForgeTokensResponse) GetJSON200() *struct {
+	Tokens []SavedForgeToken `json:"tokens"`
+} {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r ListForgeTokensResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetBody returns the raw response body bytes
+func (r ListForgeTokensResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListForgeTokensResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListForgeTokensResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListForgeTokensResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type SaveForgeTokenResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *SavedForgeToken
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *BadRequest
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON413 the response for an HTTP 413 `application/json` response
+	JSON413 *PayloadTooLarge
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r SaveForgeTokenResponse) GetJSON200() *SavedForgeToken {
+	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r SaveForgeTokenResponse) GetJSON400() *BadRequest {
+	return r.JSON400
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r SaveForgeTokenResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON413 returns the response for an HTTP 413 `application/json` response
+func (r SaveForgeTokenResponse) GetJSON413() *PayloadTooLarge {
+	return r.JSON413
+}
+
+// GetBody returns the raw response body bytes
+func (r SaveForgeTokenResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r SaveForgeTokenResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SaveForgeTokenResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r SaveForgeTokenResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeleteForgeTokenResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *NotFound
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r DeleteForgeTokenResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r DeleteForgeTokenResponse) GetJSON404() *NotFound {
+	return r.JSON404
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteForgeTokenResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteForgeTokenResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteForgeTokenResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteForgeTokenResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -7258,6 +7683,66 @@ func (c *ClientWithResponses) ListBranchesWithResponse(ctx context.Context, para
 	return ParseListBranchesResponse(rsp)
 }
 
+// ListForgeTokensWithResponse The forge tokens saved for registering repositories
+//
+// Session-only. Returns each saved token in its masked form only (`****1234`); no endpoint returns the token itself. At most one token is saved per forge and, for Forgejo, per instance URL.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/forge-tokens (the `ListForgeTokens` operationId).
+func (c *ClientWithResponses) ListForgeTokensWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListForgeTokensResponse, error) {
+	rsp, err := c.ListForgeTokens(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListForgeTokensResponse(rsp)
+}
+
+// SaveForgeTokenWithBodyWithResponse Save a forge token, replacing the one for that forge and instance
+//
+// Session-only. Stores the token encrypted at rest, like a repo's token. Saving for a forge and instance that already has one replaces it. The token isn't checked against the forge here: registering with it is what finds out whether it works.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/forge-tokens (the `SaveForgeToken` operationId).
+func (c *ClientWithResponses) SaveForgeTokenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SaveForgeTokenResponse, error) {
+	rsp, err := c.SaveForgeTokenWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSaveForgeTokenResponse(rsp)
+}
+
+// SaveForgeTokenWithResponse Save a forge token, replacing the one for that forge and instance
+//
+// Session-only. Stores the token encrypted at rest, like a repo's token. Saving for a forge and instance that already has one replaces it. The token isn't checked against the forge here: registering with it is what finds out whether it works.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/forge-tokens (the `SaveForgeToken` operationId).
+func (c *ClientWithResponses) SaveForgeTokenWithResponse(ctx context.Context, body SaveForgeTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*SaveForgeTokenResponse, error) {
+	rsp, err := c.SaveForgeToken(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSaveForgeTokenResponse(rsp)
+}
+
+// DeleteForgeTokenWithResponse Delete a saved forge token
+//
+// Session-only. Repos already registered with it keep their own copy and keep working: a saved token is a convenience for the next registration, not a link from the repos that used it.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /api/forge-tokens/{tokenId} (the `DeleteForgeToken` operationId).
+func (c *ClientWithResponses) DeleteForgeTokenWithResponse(ctx context.Context, tokenId string, reqEditors ...RequestEditorFn) (*DeleteForgeTokenResponse, error) {
+	rsp, err := c.DeleteForgeToken(ctx, tokenId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteForgeTokenResponse(rsp)
+}
+
 // GetFailureInsightsWithResponse Failure aggregates over a window -- pass rate, MTTR, failure distribution, root-cause groups
 //
 // Backs the failure overview and root-cause views. "Stage" means step: forges expose workflows, jobs and steps but no stage taxonomy, so the distribution and the groups are by failing step name. `passRateDelta` compares against the preceding window of equal length. Failure categories are heuristic (step conclusion and name), never log-derived; a failure no rule matches is `uncategorised`.
@@ -8195,6 +8680,124 @@ func ParseListBranchesResponse(rsp *http.Response) (*ListBranchesResponse, error
 			return nil, err
 		}
 		response.JSON401 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListForgeTokensResponse parses an HTTP response from a ListForgeTokensWithResponse call
+func ParseListForgeTokensResponse(rsp *http.Response) (*ListForgeTokensResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListForgeTokensResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			Tokens []SavedForgeToken `json:"tokens"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSaveForgeTokenResponse parses an HTTP response from a SaveForgeTokenWithResponse call
+func ParseSaveForgeTokenResponse(rsp *http.Response) (*SaveForgeTokenResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SaveForgeTokenResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SavedForgeToken
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest PayloadTooLarge
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteForgeTokenResponse parses an HTTP response from a DeleteForgeTokenWithResponse call
+func ParseDeleteForgeTokenResponse(rsp *http.Response) (*DeleteForgeTokenResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteForgeTokenResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case rsp.StatusCode == 204:
+		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	}
 
