@@ -527,6 +527,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PipelineRepoIdFilter"
         - $ref: "#/components/parameters/RepoForgeFilter"
+        - $ref: "#/components/parameters/BranchFilter"
         - $ref: "#/components/parameters/InsightsWindow"
         - $ref: "#/components/parameters/Limit"
         - $ref: "#/components/parameters/Offset"
@@ -537,6 +538,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FlakyStepList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -556,6 +559,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PipelineRepoIdFilter"
         - $ref: "#/components/parameters/RepoForgeFilter"
+        - $ref: "#/components/parameters/BranchFilter"
         - $ref: "#/components/parameters/InsightsWindow"
       responses:
         "200":
@@ -564,6 +568,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FailureInsights"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -575,6 +581,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PipelineRepoIdFilter"
         - $ref: "#/components/parameters/RepoForgeFilter"
+        - $ref: "#/components/parameters/BranchFilter"
         - $ref: "#/components/parameters/RunStatusFilter"
         - $ref: "#/components/parameters/Limit"
         - $ref: "#/components/parameters/Offset"
@@ -1075,6 +1082,17 @@ components:
       description: Restrict the list to one tracked repo. Omitted returns every repo's pipelines.
       schema:
         type: string
+    BranchFilter:
+      name: branch
+      in: query
+      required: false
+      description: >
+        Cover only runs on this branch, matched exactly. Omitted covers every
+        branch. A branch with no runs in range is an empty result, not an
+        error. Longer than 255 characters is a 400.
+      schema:
+        type: string
+        maxLength: 255
     PipelineHealthFilter:
       name: health
       in: query

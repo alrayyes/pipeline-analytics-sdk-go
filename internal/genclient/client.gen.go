@@ -1224,6 +1224,9 @@ type WebAuthnCreationOptions = map[string]interface{}
 // WebAuthnRequestOptions A WebAuthn PublicKeyCredentialRequestOptions (opaque to the client beyond browser API use).
 type WebAuthnRequestOptions = map[string]interface{}
 
+// BranchFilter defines model for BranchFilter.
+type BranchFilter = string
+
 // InsightsWindow defines model for InsightsWindow.
 type InsightsWindow string
 
@@ -1294,6 +1297,9 @@ type GetFailureInsightsParams struct {
 
 	// Forge Restrict the list to one forge. Omitted returns every forge.
 	Forge *RepoForgeFilter `form:"forge,omitempty" json:"forge,omitempty"`
+
+	// Branch Cover only runs on this branch, matched exactly. Omitted covers every branch. A branch with no runs in range is an empty result, not an error. Longer than 255 characters is a 400.
+	Branch *BranchFilter `form:"branch,omitempty" json:"branch,omitempty"`
 
 	// Window Trailing span of time the failure insights cover: `24h`, `7d` or `30d`. Unlike `Window`, this is never a run count -- a quiet and a busy pipeline would cover very different spans. Anything else falls back to `7d`.
 	Window *GetFailureInsightsParamsWindow `form:"window,omitempty" json:"window,omitempty"`
@@ -1387,6 +1393,9 @@ type ListRunsParams struct {
 	// Forge Restrict the list to one forge. Omitted returns every forge.
 	Forge *RepoForgeFilter `form:"forge,omitempty" json:"forge,omitempty"`
 
+	// Branch Cover only runs on this branch, matched exactly. Omitted covers every branch. A branch with no runs in range is an empty result, not an error. Longer than 255 characters is a 400.
+	Branch *BranchFilter `form:"branch,omitempty" json:"branch,omitempty"`
+
 	// Status Restrict runs to one status bucket. `failed` is a concluded failure, `running` is queued or in progress, `success` is a concluded success. Omitted or `all` returns every run.
 	Status *ListRunsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
 
@@ -1412,6 +1421,9 @@ type ListFlakyStepsParams struct {
 
 	// Forge Restrict the list to one forge. Omitted returns every forge.
 	Forge *RepoForgeFilter `form:"forge,omitempty" json:"forge,omitempty"`
+
+	// Branch Cover only runs on this branch, matched exactly. Omitted covers every branch. A branch with no runs in range is an empty result, not an error. Longer than 255 characters is a 400.
+	Branch *BranchFilter `form:"branch,omitempty" json:"branch,omitempty"`
 
 	// Window Trailing span of time the failure insights cover: `24h`, `7d` or `30d`. Unlike `Window`, this is never a run count -- a quiet and a busy pipeline would cover very different spans. Anything else falls back to `7d`.
 	Window *ListFlakyStepsParamsWindow `form:"window,omitempty" json:"window,omitempty"`
@@ -3069,6 +3081,18 @@ func NewGetFailureInsightsRequest(server string, params *GetFailureInsightsParam
 
 		}
 
+		if params.Branch != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "branch", *params.Branch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.Window != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "window", *params.Window, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
@@ -3846,6 +3870,18 @@ func NewListRunsRequest(server string, params *ListRunsParams) (*http.Request, e
 
 		}
 
+		if params.Branch != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "branch", *params.Branch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.Status != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "status", *params.Status, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
@@ -4108,6 +4144,18 @@ func NewListFlakyStepsRequest(server string, params *ListFlakyStepsParams) (*htt
 		if params.Forge != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "forge", *params.Forge, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Branch != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "branch", *params.Branch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -5453,6 +5501,8 @@ type GetFailureInsightsResponse struct {
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *FailureInsights
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *BadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Unauthorized
 }
@@ -5460,6 +5510,11 @@ type GetFailureInsightsResponse struct {
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
 func (r GetFailureInsightsResponse) GetJSON200() *FailureInsights {
 	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r GetFailureInsightsResponse) GetJSON400() *BadRequest {
+	return r.JSON400
 }
 
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
@@ -6447,6 +6502,8 @@ type ListFlakyStepsResponse struct {
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
 	JSON200 *FlakyStepList
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *BadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Unauthorized
 }
@@ -6454,6 +6511,11 @@ type ListFlakyStepsResponse struct {
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
 func (r ListFlakyStepsResponse) GetJSON200() *FlakyStepList {
 	return r.JSON200
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r ListFlakyStepsResponse) GetJSON400() *BadRequest {
+	return r.JSON400
 }
 
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
@@ -7877,6 +7939,13 @@ func ParseGetFailureInsightsResponse(rsp *http.Response) (*GetFailureInsightsRes
 		}
 		response.JSON200 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest Unauthorized
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -8604,6 +8673,13 @@ func ParseListFlakyStepsResponse(rsp *http.Response) (*ListFlakyStepsResponse, e
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest Unauthorized
