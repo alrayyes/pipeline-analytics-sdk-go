@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.17.1](https://github.com/alrayyes/pipeline-analytics-sdk-go/compare/v1.17.0...v1.17.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* **contract:** follow the spec for optional tokens and saved forge tokens ([b559656](https://github.com/alrayyes/pipeline-analytics-sdk-go/commit/b5596560ccc90d14e9f18f5e47ea34e405376be3))
+* **contract:** send valid bodies as JSON so a field's type can't break the build ([f089d9f](https://github.com/alrayyes/pipeline-analytics-sdk-go/commit/f089d9f646634ba6616f89de99e94eb5b286428f))
+* **contract:** send valid bodies as JSON so a field's type can't break the build ([04a1a97](https://github.com/alrayyes/pipeline-analytics-sdk-go/commit/04a1a9735de84518dfd915c02bb74c0f4b953bd6))
+
 ## [1.17.0](https://github.com/alrayyes/pipeline-analytics-sdk-go/compare/v1.16.0...v1.17.0) (2026-10-05)
 
 
