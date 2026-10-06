@@ -17,10 +17,10 @@ import (
 // status, and a body that breaks the schema must get a 4xx from the mock,
 // never a 2xx.
 //
-// valid goes through the typed client method, so a spec change to the body
-// type stops this compiling. invalid is raw JSON sent through the generated
-// <op>WithBody variant, since the typed method can't express a body of the
-// wrong shape.
+// invalid is raw JSON sent through the generated <op>WithBody variant, since
+// the typed method can't express a body of the wrong shape. valid may be raw
+// JSON too: a typed body stops compiling when a regeneration changes a
+// field's optionality, which leaves main red instead of failing the spec.
 type bodyCase struct {
 	// wantStatus is the success status the spec documents for the operation.
 	wantStatus int
@@ -60,7 +60,7 @@ var bodyCases = map[string]bodyCase{
 
 			return statusOf(r, err)
 		},
-		invalidBody: `{"forge":"github"}`, // token is required
+		invalidBody: `{"forge":"nope"}`, // not a forge in the spec
 	},
 	"ForgejoWebhook": {
 		wantStatus: http.StatusAccepted,
@@ -103,6 +103,20 @@ var bodyCases = map[string]bodyCase{
 			return statusOf(r, err)
 		},
 		invalidBody: `[]`,
+	},
+	"SaveForgeToken": {
+		wantStatus: http.StatusOK,
+		valid: func(ctx context.Context, c *pipelineanalytics.Client) (int, error) {
+			r, err := c.SaveForgeTokenWithBodyWithResponse(ctx, jsonType, strings.NewReader(`{"forge":"github","token":"sample"}`))
+
+			return statusOf(r, err)
+		},
+		invalid: func(ctx context.Context, c *pipelineanalytics.Client, body string) (int, error) {
+			r, err := c.SaveForgeTokenWithBodyWithResponse(ctx, jsonType, strings.NewReader(body))
+
+			return statusOf(r, err)
+		},
+		invalidBody: `{"forge":"github"}`, // token is required
 	},
 	"RegisterRepo": {
 		wantStatus: http.StatusCreated,
