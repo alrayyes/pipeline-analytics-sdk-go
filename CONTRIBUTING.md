@@ -23,6 +23,12 @@
 `lefthook run pre-push` runs the same set (plus `go mod tidy -diff`), so
 that's the one command to run before opening a pull request.
 
+`scripts/build-reports.sh` turns `coverage.out` and `junit.xml` into the
+published report layout; `scripts/build-reports.test.sh` checks it and runs
+in the `test` job. The `pages-deploy` job in `ci.yml` publishes the result
+on a push to `main`, after every required job is green. It needs GitHub
+Pages set to the "GitHub Actions" source in the repo's settings.
+
 ## Regenerating the client
 
 `internal/genclient/client.gen.go` is generated from `openapi/openapi.yaml`
