@@ -1864,7 +1864,8 @@ components:
 
     RunSummary:
       type: object
-      required: [id, pipelineId, pipelineName, repoId, status, outcome, steps]
+      required:
+        [id, pipelineId, pipelineName, repoId, status, outcome, actions, steps]
       properties:
         id:
           type: string
@@ -1904,6 +1905,18 @@ components:
           type: string
           format: uri
           description: Deep link to the run on the originating forge.
+        actions:
+          type: array
+          description: >
+            What a session may ask the forge to do to this run now: `rerun` for
+            a concluded GitHub run, `cancel` for a queued or running one. Empty
+            when neither applies, and always empty for a Forgejo run. The same
+            rule decides the `409 not_actionable` and `501 unsupported` answers
+            of `POST /api/runs/{runId}/rerun` and `/cancel`, which stay
+            session-only whoever reads this list.
+          items:
+            type: string
+            enum: [rerun, cancel]
         steps:
           type: array
           description: The run's steps in recorded order.

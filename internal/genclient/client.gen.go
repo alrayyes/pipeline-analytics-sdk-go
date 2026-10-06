@@ -263,6 +263,24 @@ func (e PipelineSummaryTriggeredSignals) Valid() bool {
 	}
 }
 
+// Defines values for RunSummaryActions.
+const (
+	Cancel RunSummaryActions = "cancel"
+	Rerun  RunSummaryActions = "rerun"
+)
+
+// Valid indicates whether the value is a known member of the RunSummaryActions enum.
+func (e RunSummaryActions) Valid() bool {
+	switch e {
+	case Cancel:
+		return true
+	case Rerun:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SettingsForgeFilter.
 const (
 	SettingsForgeFilterAll     SettingsForgeFilter = "all"
@@ -1094,6 +1112,9 @@ type RunStep struct {
 
 // RunSummary defines model for RunSummary.
 type RunSummary struct {
+	// Actions What a session may ask the forge to do to this run now: `rerun` for a concluded GitHub run, `cancel` for a queued or running one. Empty when neither applies, and always empty for a Forgejo run. The same rule decides the `409 not_actionable` and `501 unsupported` answers of `POST /api/runs/{runId}/rerun` and `/cancel`, which stay session-only whoever reads this list.
+	Actions []RunSummaryActions `json:"actions"`
+
 	// Actor The triggering user or bot.
 	Actor *string `json:"actor,omitempty"`
 
@@ -1129,6 +1150,9 @@ type RunSummary struct {
 	// Steps The run's steps in recorded order.
 	Steps []RunStep `json:"steps"`
 }
+
+// RunSummaryActions defines model for RunSummary.Actions.
+type RunSummaryActions string
 
 // SaveForgeTokenRequest defines model for SaveForgeTokenRequest.
 type SaveForgeTokenRequest struct {
