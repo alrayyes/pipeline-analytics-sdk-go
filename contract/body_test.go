@@ -51,7 +51,7 @@ var bodyCases = map[string]bodyCase{
 	"DiscoverRepos": {
 		wantStatus: http.StatusOK,
 		valid: func(ctx context.Context, c *pipelineanalytics.Client) (int, error) {
-			r, err := c.DiscoverReposWithResponse(ctx, genclient.RepoDiscoveryRequest{Forge: genclient.ForgeGithub, Token: "sample"})
+			r, err := c.DiscoverReposWithBodyWithResponse(ctx, jsonType, strings.NewReader(`{"forge":"github","token":"sample"}`))
 
 			return statusOf(r, err)
 		},
@@ -107,7 +107,7 @@ var bodyCases = map[string]bodyCase{
 	"RegisterRepo": {
 		wantStatus: http.StatusCreated,
 		valid: func(ctx context.Context, c *pipelineanalytics.Client) (int, error) {
-			r, err := c.RegisterRepoWithResponse(ctx, genclient.RepoRegistration{Forge: genclient.ForgeGithub, Identifier: "alrayyes/pipeline-analytics", Token: "sample"})
+			r, err := c.RegisterRepoWithBodyWithResponse(ctx, jsonType, strings.NewReader(`{"forge":"github","identifier":"alrayyes/pipeline-analytics","token":"sample"}`))
 
 			return statusOf(r, err)
 		},
