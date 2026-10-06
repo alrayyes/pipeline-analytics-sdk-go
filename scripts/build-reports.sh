@@ -4,8 +4,9 @@
 #
 # Inputs, in the working directory: coverage.out (go test -coverprofile) and
 # junit.xml (gotestsum --junitfile). Output: <dest>/reports/, ready to upload
-# as the Pages artifact. The path under <dest> matters: the user site serves
-# every project as a subpath, so the artifact mirrors that path.
+# as the Pages artifact. This repo's Pages root is already
+# apis.ryankes.eu/pipeline-analytics-sdk-go/, so <dest> is the artifact root and
+# takes no repo-name prefix.
 set -euo pipefail
 
 dest="${1:?usage: build-reports.sh <dest-dir>}"
