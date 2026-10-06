@@ -22,6 +22,8 @@ jobs:
           ./scripts/go-docker.sh sh -c
           "go run gotest.tools/gotestsum@v1.13.0 --junitfile junit.xml --
           -race -coverprofile=coverage.out ./..."
+      - name: Reports assemble into the published layout
+        run: ./scripts/build-reports.test.sh
       - name: Upload coverage/test-result reports
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -127,3 +129,41 @@ jobs:
              -generate types,client -package genclient \
              -o internal/genclient/client.gen.go openapi/openapi.yaml"
           git diff --exit-code openapi/openapi.yaml internal/genclient/client.gen.go
+
+  # Publishes the test and coverage reports to
+  # apis.ryankes.eu/pipeline-analytics-sdk-go/reports/. The artifact mirrors
+  # that path under _site/ because apis.ryankes.eu is a Pages user site and
+  # serves every project as a subpath. Waits on every required job and runs
+  # on a push to main only, so a red run publishes nothing. `coverage`
+  # (Codecov) is left out on purpose: a missing CODECOV_TOKEN must not
+  # block the reports.
+  pages-deploy:
+    name: deploy reports
+    needs: [test, contract, lint, govulncheck, generated-code-is-fresh]
+    if: >-
+      !failure() && !cancelled() &&
+      github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: reports
+      - name: Assemble reports
+        run: ./scripts/build-reports.sh _site/pipeline-analytics-sdk-go
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

@@ -121,6 +121,13 @@ jitter (honoring a server-sent `Retry-After`), and never retries any other
 `4xx`. Tune it with `WithRetry`, or swap the underlying `*http.Client`
 entirely with `WithHTTPClient`.
 
+## Reports
+
+Each green push to `main` publishes its test and coverage reports at
+[apis.ryankes.eu/pipeline-analytics-sdk-go/reports/](https://apis.ryankes.eu/pipeline-analytics-sdk-go/reports/):
+JUnit XML under `tests/`, and the HTML view, Cobertura XML and Go profile
+under `coverage/`.
+
 ## Regenerating the client
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) — the generated code is pinned to a
