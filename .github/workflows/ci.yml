@@ -132,8 +132,9 @@ jobs:
 
   # Publishes the test and coverage reports to
   # apis.ryankes.eu/pipeline-analytics-sdk-go/reports/. The artifact mirrors
-  # that path under _site/ because apis.ryankes.eu is a Pages user site and
-  # serves every project as a subpath. Waits on every required job and runs
+  # that path: this repo's Pages root is already
+  # apis.ryankes.eu/pipeline-analytics-sdk-go/, so reports/ sits at the
+  # artifact root with no repo-name prefix. Waits on every required job and runs
   # on a push to main only, so a red run publishes nothing. `coverage`
   # (Codecov) is left out on purpose: a missing CODECOV_TOKEN must not
   # block the reports.
@@ -161,7 +162,7 @@ jobs:
         with:
           name: reports
       - name: Assemble reports
-        run: ./scripts/build-reports.sh _site/pipeline-analytics-sdk-go
+        run: ./scripts/build-reports.sh _site
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: _site
