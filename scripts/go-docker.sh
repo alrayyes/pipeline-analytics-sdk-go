@@ -5,7 +5,11 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-GO_IMAGE="golang:1.27.1-bookworm"
+# One patch ahead of go.mod's 1.27.1 on purpose: 1.27.2 carries the
+# standard-library fixes govulncheck reports, but golangci-lint (built with
+# 1.27.0) can't read 1.27.2's export data, so go.mod stays put until a
+# release is built with 1.27.2 or later.
+GO_IMAGE="golang:1.27.2-bookworm"
 
 # Pre-create the cache dirs as the invoking user. Docker auto-creates a
 # missing bind-mount source itself (as root, via the daemon) the first
