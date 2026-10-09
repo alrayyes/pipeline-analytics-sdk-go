@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.18.1](https://github.com/alrayyes/pipeline-analytics-sdk-go/compare/v1.18.0...v1.18.1) (2026-10-09)
+
+
+### Bug Fixes
+
+* **deps:** run Go 1.27.2 to clear the standard-library advisories ([289c9e6](https://github.com/alrayyes/pipeline-analytics-sdk-go/commit/289c9e69cc3c4efd839f76569a1a3444f64e4370))
+* **deps:** run Go 1.27.2 to clear the standard-library advisories ([b8de025](https://github.com/alrayyes/pipeline-analytics-sdk-go/commit/b8de025eeb52963c2c6886336375b77f4b28277f))
+
 ## [1.18.0](https://github.com/alrayyes/pipeline-analytics-sdk-go/compare/v1.17.1...v1.18.0) (2026-10-06)
 
 
