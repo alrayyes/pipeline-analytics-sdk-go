@@ -22,6 +22,8 @@ jobs:
           ./scripts/go-docker.sh sh -c
           "go run gotest.tools/gotestsum@v1.13.0 --junitfile junit.xml --
           -race -coverprofile=coverage.out ./..."
+      - name: lefthook restages through stage_fixed
+        run: ./scripts/lefthook.test.sh
       - name: Reports assemble into the published layout
         run: ./scripts/build-reports.test.sh
       - name: Upload coverage/test-result reports
