@@ -1020,10 +1020,19 @@ paths:
       description: >
         Session-only -- an API token can't be used to issue another one.
         The raw token value is returned once, here, and is never
-        recoverable afterward.
+        recoverable afterward. The token lasts 90 days unless the body asks
+        for another lifetime with `ttlSeconds`; anything over 365 days (the
+        ceiling) is clamped to it, and `expiresAt` in the response is the
+        expiry actually applied.
       tags: [auth]
       security:
         - sessionCookie: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IssueApiTokenRequest"
       responses:
         "201":
           description: Token issued
@@ -1031,6 +1040,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiToken"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -1540,6 +1551,17 @@ components:
         telemetryWindow:
           type: [string, "null"]
           enum: ["24h", "7d", "30d", null]
+
+    IssueApiTokenRequest:
+      type: object
+      properties:
+        ttlSeconds:
+          type: integer
+          minimum: 1
+          description: >
+            How long the token should last, in seconds. Omit it for the
+            default of 90 days. A value above 365 days is clamped to 365
+            days; zero or less is rejected.
 
     ApiToken:
       type: object
