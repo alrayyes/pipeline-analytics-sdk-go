@@ -90,6 +90,21 @@ var bodyCases = map[string]bodyCase{
 		},
 		invalidBody: `[]`,
 	},
+	"IssueApiToken": {
+		wantStatus: http.StatusCreated,
+		valid: func(ctx context.Context, c *pipelineanalytics.Client) (int, error) {
+			ttl := 30 * 24 * 60 * 60
+			r, err := c.IssueApiTokenWithResponse(ctx, genclient.IssueApiTokenJSONRequestBody{TtlSeconds: &ttl})
+
+			return statusOf(r, err)
+		},
+		invalid: func(ctx context.Context, c *pipelineanalytics.Client, body string) (int, error) {
+			r, err := c.IssueApiTokenWithBodyWithResponse(ctx, jsonType, strings.NewReader(body))
+
+			return statusOf(r, err)
+		},
+		invalidBody: `{"ttlSeconds":0}`, // the spec's minimum is 1
+	},
 	"McpEndpoint": {
 		wantStatus: http.StatusOK,
 		valid: func(ctx context.Context, c *pipelineanalytics.Client) (int, error) {

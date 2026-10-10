@@ -957,6 +957,12 @@ type HealthStatus string
 // IngestionStatus defines model for IngestionStatus.
 type IngestionStatus string
 
+// IssueApiTokenRequest defines model for IssueApiTokenRequest.
+type IssueApiTokenRequest struct {
+	// TtlSeconds How long the token should last, in seconds. Omit it for the default of 90 days. A value above 365 days is clamped to 365 days; zero or less is rejected.
+	TtlSeconds *int `json:"ttlSeconds,omitempty"`
+}
+
 // JobLog defines model for JobLog.
 type JobLog struct {
 	// Available False when the forge gave no log; see `reason`. `lines` is then empty.
@@ -1647,6 +1653,9 @@ type WebauthnLoginJSONRequestBody = WebAuthnAssertionResponse
 // WebauthnRegisterJSONRequestBody defines body for WebauthnRegister for application/json ContentType.
 type WebauthnRegisterJSONRequestBody = WebAuthnAttestationResponse
 
+// IssueApiTokenJSONRequestBody defines body for IssueApiToken for application/json ContentType.
+type IssueApiTokenJSONRequestBody = IssueApiTokenRequest
+
 // SaveForgeTokenJSONRequestBody defines body for SaveForgeToken for application/json ContentType.
 type SaveForgeTokenJSONRequestBody = SaveForgeTokenRequest
 
@@ -1827,12 +1836,23 @@ type ClientInterface interface {
 	// Corresponds with POST /api/auth/register/options (the `WebauthnRegisterOptions` operationId).
 	WebauthnRegisterOptions(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// IssueApiToken Issue a new API token
+	// IssueApiTokenWithBody Issue a new API token
 	//
-	// Session-only -- an API token can't be used to issue another one. The raw token value is returned once, here, and is never recoverable afterward.
+	// Session-only -- an API token can't be used to issue another one. The raw token value is returned once, here, and is never recoverable afterward. The token lasts 90 days unless the body asks for another lifetime with `ttlSeconds`; anything over 365 days (the ceiling) is clamped to it, and `expiresAt` in the response is the expiry actually applied.
+	//
+	// Takes any type of body and a specified content type.
 	//
 	// Corresponds with POST /api/auth/tokens (the `IssueApiToken` operationId).
-	IssueApiToken(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+	IssueApiTokenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// IssueApiToken Issue a new API token
+	//
+	// Session-only -- an API token can't be used to issue another one. The raw token value is returned once, here, and is never recoverable afterward. The token lasts 90 days unless the body asks for another lifetime with `ttlSeconds`; anything over 365 days (the ceiling) is clamped to it, and `expiresAt` in the response is the expiry actually applied.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/auth/tokens (the `IssueApiToken` operationId).
+	IssueApiToken(ctx context.Context, body IssueApiTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RevokeApiToken Revoke an API token
 	//
@@ -2341,13 +2361,34 @@ func (c *Client) WebauthnRegisterOptions(ctx context.Context, reqEditors ...Requ
 	return c.Client.Do(req)
 }
 
-// IssueApiToken Issue a new API token
+// IssueApiTokenWithBody Issue a new API token
 //
-// Session-only -- an API token can't be used to issue another one. The raw token value is returned once, here, and is never recoverable afterward.
+// Session-only -- an API token can't be used to issue another one. The raw token value is returned once, here, and is never recoverable afterward. The token lasts 90 days unless the body asks for another lifetime with `ttlSeconds`; anything over 365 days (the ceiling) is clamped to it, and `expiresAt` in the response is the expiry actually applied.
+//
+// Takes any type of body and a specified content type.
 //
 // Corresponds with POST /api/auth/tokens (the `IssueApiToken` operationId).
-func (c *Client) IssueApiToken(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewIssueApiTokenRequest(c.Server)
+func (c *Client) IssueApiTokenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewIssueApiTokenRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// IssueApiToken Issue a new API token
+//
+// Session-only -- an API token can't be used to issue another one. The raw token value is returned once, here, and is never recoverable afterward. The token lasts 90 days unless the body asks for another lifetime with `ttlSeconds`; anything over 365 days (the ceiling) is clamped to it, and `expiresAt` in the response is the expiry actually applied.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/auth/tokens (the `IssueApiToken` operationId).
+func (c *Client) IssueApiToken(ctx context.Context, body IssueApiTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewIssueApiTokenRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -3398,8 +3439,19 @@ func NewWebauthnRegisterOptionsRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
-// NewIssueApiTokenRequest constructs an http.Request for the IssueApiToken method
-func NewIssueApiTokenRequest(server string) (*http.Request, error) {
+// NewIssueApiTokenRequest calls the generic IssueApiToken builder with application/json body
+func NewIssueApiTokenRequest(server string, body IssueApiTokenJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewIssueApiTokenRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewIssueApiTokenRequestWithBody constructs an http.Request for the IssueApiToken method, with any body, and a specified content type
+func NewIssueApiTokenRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -3417,10 +3469,12 @@ func NewIssueApiTokenRequest(server string) (*http.Request, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -5408,14 +5462,23 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /api/auth/register/options (the `WebauthnRegisterOptions` operationId).
 	WebauthnRegisterOptionsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*WebauthnRegisterOptionsResponse, error)
 
-	// IssueApiTokenWithResponse Issue a new API token
+	// IssueApiTokenWithBodyWithResponse Issue a new API token
 	//
-	// Session-only -- an API token can't be used to issue another one. The raw token value is returned once, here, and is never recoverable afterward.
+	// Session-only -- an API token can't be used to issue another one. The raw token value is returned once, here, and is never recoverable afterward. The token lasts 90 days unless the body asks for another lifetime with `ttlSeconds`; anything over 365 days (the ceiling) is clamped to it, and `expiresAt` in the response is the expiry actually applied.
 	//
-	// Returns a wrapper object for the known response body format(s).
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /api/auth/tokens (the `IssueApiToken` operationId).
-	IssueApiTokenWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*IssueApiTokenResponse, error)
+	IssueApiTokenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*IssueApiTokenResponse, error)
+
+	// IssueApiTokenWithResponse Issue a new API token
+	//
+	// Session-only -- an API token can't be used to issue another one. The raw token value is returned once, here, and is never recoverable afterward. The token lasts 90 days unless the body asks for another lifetime with `ttlSeconds`; anything over 365 days (the ceiling) is clamped to it, and `expiresAt` in the response is the expiry actually applied.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/auth/tokens (the `IssueApiToken` operationId).
+	IssueApiTokenWithResponse(ctx context.Context, body IssueApiTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*IssueApiTokenResponse, error)
 
 	// RevokeApiTokenWithResponse Revoke an API token
 	//
@@ -6267,6 +6330,8 @@ type IssueApiTokenResponse struct {
 	HTTPResponse *http.Response
 	// JSON201 the response for an HTTP 201 `application/json` response
 	JSON201 *ApiToken
+	// JSON400 the response for an HTTP 400 `application/json` response
+	JSON400 *BadRequest
 	// JSON401 the response for an HTTP 401 `application/json` response
 	JSON401 *Unauthorized
 }
@@ -6274,6 +6339,11 @@ type IssueApiTokenResponse struct {
 // GetJSON201 returns the response for an HTTP 201 `application/json` response
 func (r IssueApiTokenResponse) GetJSON201() *ApiToken {
 	return r.JSON201
+}
+
+// GetJSON400 returns the response for an HTTP 400 `application/json` response
+func (r IssueApiTokenResponse) GetJSON400() *BadRequest {
+	return r.JSON400
 }
 
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
@@ -8319,15 +8389,30 @@ func (c *ClientWithResponses) WebauthnRegisterOptionsWithResponse(ctx context.Co
 	return ParseWebauthnRegisterOptionsResponse(rsp)
 }
 
-// IssueApiTokenWithResponse Issue a new API token
+// IssueApiTokenWithBodyWithResponse Issue a new API token
 //
-// Session-only -- an API token can't be used to issue another one. The raw token value is returned once, here, and is never recoverable afterward.
+// Session-only -- an API token can't be used to issue another one. The raw token value is returned once, here, and is never recoverable afterward. The token lasts 90 days unless the body asks for another lifetime with `ttlSeconds`; anything over 365 days (the ceiling) is clamped to it, and `expiresAt` in the response is the expiry actually applied.
 //
-// Returns a wrapper object for the known response body format(s).
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
 // Corresponds with POST /api/auth/tokens (the `IssueApiToken` operationId).
-func (c *ClientWithResponses) IssueApiTokenWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*IssueApiTokenResponse, error) {
-	rsp, err := c.IssueApiToken(ctx, reqEditors...)
+func (c *ClientWithResponses) IssueApiTokenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*IssueApiTokenResponse, error) {
+	rsp, err := c.IssueApiTokenWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseIssueApiTokenResponse(rsp)
+}
+
+// IssueApiTokenWithResponse Issue a new API token
+//
+// Session-only -- an API token can't be used to issue another one. The raw token value is returned once, here, and is never recoverable afterward. The token lasts 90 days unless the body asks for another lifetime with `ttlSeconds`; anything over 365 days (the ceiling) is clamped to it, and `expiresAt` in the response is the expiry actually applied.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/auth/tokens (the `IssueApiToken` operationId).
+func (c *ClientWithResponses) IssueApiTokenWithResponse(ctx context.Context, body IssueApiTokenJSONRequestBody, reqEditors ...RequestEditorFn) (*IssueApiTokenResponse, error) {
+	rsp, err := c.IssueApiToken(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -9360,6 +9445,13 @@ func ParseIssueApiTokenResponse(rsp *http.Response) (*IssueApiTokenResponse, err
 			return nil, err
 		}
 		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequest
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest Unauthorized
