@@ -118,6 +118,21 @@ var bodyCases = map[string]bodyCase{
 		},
 		invalidBody: `{"forge":"github"}`, // token is required
 	},
+	"QuarantineStep": {
+		wantStatus: http.StatusOK,
+		valid: func(ctx context.Context, c *pipelineanalytics.Client) (int, error) {
+			note := "waits on the shared database"
+			r, err := c.QuarantineStepWithResponse(ctx, "sample", "test", genclient.QuarantineStepJSONRequestBody{Note: &note})
+
+			return statusOf(r, err)
+		},
+		invalid: func(ctx context.Context, c *pipelineanalytics.Client, body string) (int, error) {
+			r, err := c.QuarantineStepWithBodyWithResponse(ctx, "sample", "test", jsonType, strings.NewReader(body))
+
+			return statusOf(r, err)
+		},
+		invalidBody: `{"note":123}`, // a note is a string
+	},
 	"RegisterRepo": {
 		wantStatus: http.StatusCreated,
 		valid: func(ctx context.Context, c *pipelineanalytics.Client) (int, error) {
