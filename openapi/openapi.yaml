@@ -445,6 +445,73 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /api/pipelines/{pipelineId}/steps/{step}/quarantine:
+    put:
+      operationId: quarantineStep
+      summary: Mark a flaky step as known, so it stops making its pipeline unhealthy
+      description: >
+        Session-only: an API token or an MCP client can read a quarantine but
+        not set one. A quarantined step stays in the flaky list with its
+        figures unchanged, but no longer raises the pipeline's `flaky_step`
+        health signal or counts in the flaky-step ratio. The mark lasts 30
+        days from now; marking a step that is already quarantined renews it
+        and replaces its note. It is recorded in this service only: no forge
+        is contacted. The step isn't checked to be flaky, so a mark on a step
+        that isn't does nothing until it is.
+      tags: [pipelines]
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/PipelineId"
+        - $ref: "#/components/parameters/StepNamePath"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuarantineRequest"
+      responses:
+        "200":
+          description: The step is quarantined
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StepQuarantine"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          description: The note is longer than 500 characters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      operationId: unquarantineStep
+      summary: Clear a step's quarantine
+      description: >
+        Session-only. The step raises the `flaky_step` health signal again if it
+        is still flaky. A step with no quarantine is fine: the answer is the
+        same.
+      tags: [pipelines]
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/PipelineId"
+        - $ref: "#/components/parameters/StepNamePath"
+      responses:
+        "200":
+          description: The step is not quarantined
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StepQuarantine"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /api/pipelines/{pipelineId}/flaky-runs:
     get:
       operationId: listFlakyRuns
@@ -1208,6 +1275,13 @@ components:
       required: true
       schema:
         type: string
+    StepNamePath:
+      name: step
+      in: path
+      required: true
+      description: The step's name, percent-encoded when it contains a `/`.
+      schema:
+        type: string
     RunId:
       name: runId
       in: path
@@ -1716,6 +1790,7 @@ components:
           failureRate,
           failureCount,
           flaky,
+          quarantined,
         ]
       properties:
         id:
@@ -1735,6 +1810,13 @@ components:
           description: Times this step failed within the window.
         flaky:
           type: boolean
+        quarantined:
+          type: boolean
+          description: >
+            True when a person has marked this step as known. It is still
+            `flaky`; it just stops making its pipeline unhealthy.
+        quarantine:
+          $ref: "#/components/schemas/Quarantine"
         forgeUrl:
           type: string
           format: uri
@@ -2011,6 +2093,41 @@ components:
               pipelineName:
                 type: string
 
+    Quarantine:
+      type: object
+      required: [note, quarantinedAt, expiresAt]
+      description: A person's mark on a flaky step. Present only while it is in force.
+      properties:
+        note:
+          type: string
+          maxLength: 500
+          description: Why the step is quarantined; empty when none was given.
+        quarantinedAt:
+          type: string
+          format: date-time
+          description: When it was marked, or last renewed.
+        expiresAt:
+          type: string
+          format: date-time
+          description: Thirty days after `quarantinedAt`. After this the mark is as if never set.
+
+    QuarantineRequest:
+      type: object
+      properties:
+        note:
+          type: string
+          maxLength: 500
+          description: Characters, not bytes. Optional.
+
+    StepQuarantine:
+      type: object
+      required: [quarantined]
+      properties:
+        quarantined:
+          type: boolean
+        quarantine:
+          $ref: "#/components/schemas/Quarantine"
+
     FlakyStepEntry:
       type: object
       required:
@@ -2022,6 +2139,7 @@ components:
           flakeRate,
           runCount,
           recentOutcomes,
+          quarantined,
         ]
       properties:
         pipelineId:
@@ -2044,6 +2162,13 @@ components:
           description: The step's result in its most recent runs, oldest first.
           items:
             $ref: "#/components/schemas/Outcome"
+        quarantined:
+          type: boolean
+          description: >
+            True when a person has marked this step as known. It is listed
+            either way, with the same figures.
+        quarantine:
+          $ref: "#/components/schemas/Quarantine"
 
     FlakyStepList:
       type: object

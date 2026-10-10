@@ -911,6 +911,12 @@ type FlakyStepEntry struct {
 	PipelineId   string  `json:"pipelineId"`
 	PipelineName string  `json:"pipelineName"`
 
+	// Quarantine A person's mark on a flaky step. Present only while it is in force.
+	Quarantine *Quarantine `json:"quarantine,omitempty"`
+
+	// Quarantined True when a person has marked this step as known. It is listed either way, with the same figures.
+	Quarantined bool `json:"quarantined"`
+
 	// RecentOutcomes The step's result in its most recent runs, oldest first.
 	RecentOutcomes []Outcome `json:"recentOutcomes"`
 	RepoId         string    `json:"repoId"`
@@ -1025,6 +1031,24 @@ type PipelineSummary struct {
 
 // PipelineSummaryTriggeredSignals defines model for PipelineSummary.TriggeredSignals.
 type PipelineSummaryTriggeredSignals string
+
+// Quarantine A person's mark on a flaky step. Present only while it is in force.
+type Quarantine struct {
+	// ExpiresAt Thirty days after `quarantinedAt`. After this the mark is as if never set.
+	ExpiresAt time.Time `json:"expiresAt"`
+
+	// Note Why the step is quarantined; empty when none was given.
+	Note string `json:"note"`
+
+	// QuarantinedAt When it was marked, or last renewed.
+	QuarantinedAt time.Time `json:"quarantinedAt"`
+}
+
+// QuarantineRequest defines model for QuarantineRequest.
+type QuarantineRequest struct {
+	// Note Characters, not bytes. Optional.
+	Note *string `json:"note,omitempty"`
+}
 
 // RateLimitStatus defines model for RateLimitStatus.
 type RateLimitStatus struct {
@@ -1277,10 +1301,23 @@ type Step struct {
 	Flaky        bool    `json:"flaky"`
 
 	// ForgeUrl Deep link to one occurrence's log on the originating forge -- not necessarily one where the step failed. GET .../flaky-runs is the reliable way to reach a run the step actually failed on.
-	ForgeUrl     *string `json:"forgeUrl,omitempty"`
-	Id           string  `json:"id"`
-	Name         string  `json:"name"`
+	ForgeUrl *string `json:"forgeUrl,omitempty"`
+	Id       string  `json:"id"`
+	Name     string  `json:"name"`
+
+	// Quarantine A person's mark on a flaky step. Present only while it is in force.
+	Quarantine *Quarantine `json:"quarantine,omitempty"`
+
+	// Quarantined True when a person has marked this step as known. It is still `flaky`; it just stops making its pipeline unhealthy.
+	Quarantined  bool    `json:"quarantined"`
 	QueueSeconds float32 `json:"queueSeconds"`
+}
+
+// StepQuarantine defines model for StepQuarantine.
+type StepQuarantine struct {
+	// Quarantine A person's mark on a flaky step. Present only while it is in force.
+	Quarantine  *Quarantine `json:"quarantine,omitempty"`
+	Quarantined bool        `json:"quarantined"`
 }
 
 // Trend defines model for Trend.
@@ -1366,6 +1403,9 @@ type RunStatusFilter string
 
 // StepName defines model for StepName.
 type StepName = string
+
+// StepNamePath defines model for StepNamePath.
+type StepNamePath = string
 
 // Window defines model for Window.
 type Window = string
@@ -1612,6 +1652,9 @@ type SaveForgeTokenJSONRequestBody = SaveForgeTokenRequest
 
 // McpEndpointJSONRequestBody defines body for McpEndpoint for application/json ContentType.
 type McpEndpointJSONRequestBody = McpEndpointJSONBody
+
+// QuarantineStepJSONRequestBody defines body for QuarantineStep for application/json ContentType.
+type QuarantineStepJSONRequestBody = QuarantineRequest
 
 // RegisterRepoJSONRequestBody defines body for RegisterRepo for application/json ContentType.
 type RegisterRepoJSONRequestBody = RepoRegistration
@@ -1890,6 +1933,31 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/pipelines/{pipelineId}/steps (the `GetPipelineSteps` operationId).
 	GetPipelineSteps(ctx context.Context, pipelineId PipelineId, params *GetPipelineStepsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UnquarantineStep Clear a step's quarantine
+	//
+	// Session-only. The step raises the `flaky_step` health signal again if it is still flaky. A step with no quarantine is fine: the answer is the same.
+	//
+	// Corresponds with DELETE /api/pipelines/{pipelineId}/steps/{step}/quarantine (the `UnquarantineStep` operationId).
+	UnquarantineStep(ctx context.Context, pipelineId PipelineId, step StepNamePath, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// QuarantineStepWithBody Mark a flaky step as known, so it stops making its pipeline unhealthy
+	//
+	// Session-only: an API token or an MCP client can read a quarantine but not set one. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/pipelines/{pipelineId}/steps/{step}/quarantine (the `QuarantineStep` operationId).
+	QuarantineStepWithBody(ctx context.Context, pipelineId PipelineId, step StepNamePath, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// QuarantineStep Mark a flaky step as known, so it stops making its pipeline unhealthy
+	//
+	// Session-only: an API token or an MCP client can read a quarantine but not set one. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/pipelines/{pipelineId}/steps/{step}/quarantine (the `QuarantineStep` operationId).
+	QuarantineStep(ctx context.Context, pipelineId PipelineId, step StepNamePath, body QuarantineStepJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListRepos List tracked repositories
 	//
@@ -2520,6 +2588,61 @@ func (c *Client) ListFlakyRuns(ctx context.Context, pipelineId PipelineId, param
 // Corresponds with GET /api/pipelines/{pipelineId}/steps (the `GetPipelineSteps` operationId).
 func (c *Client) GetPipelineSteps(ctx context.Context, pipelineId PipelineId, params *GetPipelineStepsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetPipelineStepsRequest(c.Server, pipelineId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UnquarantineStep Clear a step's quarantine
+//
+// Session-only. The step raises the `flaky_step` health signal again if it is still flaky. A step with no quarantine is fine: the answer is the same.
+//
+// Corresponds with DELETE /api/pipelines/{pipelineId}/steps/{step}/quarantine (the `UnquarantineStep` operationId).
+func (c *Client) UnquarantineStep(ctx context.Context, pipelineId PipelineId, step StepNamePath, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUnquarantineStepRequest(c.Server, pipelineId, step)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// QuarantineStepWithBody Mark a flaky step as known, so it stops making its pipeline unhealthy
+//
+// Session-only: an API token or an MCP client can read a quarantine but not set one. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/pipelines/{pipelineId}/steps/{step}/quarantine (the `QuarantineStep` operationId).
+func (c *Client) QuarantineStepWithBody(ctx context.Context, pipelineId PipelineId, step StepNamePath, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewQuarantineStepRequestWithBody(c.Server, pipelineId, step, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// QuarantineStep Mark a flaky step as known, so it stops making its pipeline unhealthy
+//
+// Session-only: an API token or an MCP client can read a quarantine but not set one. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/pipelines/{pipelineId}/steps/{step}/quarantine (the `QuarantineStep` operationId).
+func (c *Client) QuarantineStep(ctx context.Context, pipelineId PipelineId, step StepNamePath, body QuarantineStepJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewQuarantineStepRequest(c.Server, pipelineId, step, body)
 	if err != nil {
 		return nil, err
 	}
@@ -3989,6 +4112,101 @@ func NewGetPipelineStepsRequest(server string, pipelineId PipelineId, params *Ge
 	return req, nil
 }
 
+// NewUnquarantineStepRequest constructs an http.Request for the UnquarantineStep method
+func NewUnquarantineStepRequest(server string, pipelineId PipelineId, step StepNamePath) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "pipelineId", pipelineId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "step", step, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/pipelines/%s/steps/%s/quarantine", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewQuarantineStepRequest calls the generic QuarantineStep builder with application/json body
+func NewQuarantineStepRequest(server string, pipelineId PipelineId, step StepNamePath, body QuarantineStepJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewQuarantineStepRequestWithBody(server, pipelineId, step, "application/json", bodyReader)
+}
+
+// NewQuarantineStepRequestWithBody constructs an http.Request for the QuarantineStep method, with any body, and a specified content type
+func NewQuarantineStepRequestWithBody(server string, pipelineId PipelineId, step StepNamePath, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "pipelineId", pipelineId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "step", step, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/pipelines/%s/steps/%s/quarantine", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListReposRequest constructs an http.Request for the ListRepos method
 func NewListReposRequest(server string, params *ListReposParams) (*http.Request, error) {
 	var err error
@@ -5318,6 +5536,33 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/pipelines/{pipelineId}/steps (the `GetPipelineSteps` operationId).
 	GetPipelineStepsWithResponse(ctx context.Context, pipelineId PipelineId, params *GetPipelineStepsParams, reqEditors ...RequestEditorFn) (*GetPipelineStepsResponse, error)
+
+	// UnquarantineStepWithResponse Clear a step's quarantine
+	//
+	// Session-only. The step raises the `flaky_step` health signal again if it is still flaky. A step with no quarantine is fine: the answer is the same.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /api/pipelines/{pipelineId}/steps/{step}/quarantine (the `UnquarantineStep` operationId).
+	UnquarantineStepWithResponse(ctx context.Context, pipelineId PipelineId, step StepNamePath, reqEditors ...RequestEditorFn) (*UnquarantineStepResponse, error)
+
+	// QuarantineStepWithBodyWithResponse Mark a flaky step as known, so it stops making its pipeline unhealthy
+	//
+	// Session-only: an API token or an MCP client can read a quarantine but not set one. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/pipelines/{pipelineId}/steps/{step}/quarantine (the `QuarantineStep` operationId).
+	QuarantineStepWithBodyWithResponse(ctx context.Context, pipelineId PipelineId, step StepNamePath, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*QuarantineStepResponse, error)
+
+	// QuarantineStepWithResponse Mark a flaky step as known, so it stops making its pipeline unhealthy
+	//
+	// Session-only: an API token or an MCP client can read a quarantine but not set one. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/pipelines/{pipelineId}/steps/{step}/quarantine (the `QuarantineStep` operationId).
+	QuarantineStepWithResponse(ctx context.Context, pipelineId PipelineId, step StepNamePath, body QuarantineStepJSONRequestBody, reqEditors ...RequestEditorFn) (*QuarantineStepResponse, error)
 
 	// ListReposWithResponse List tracked repositories
 	//
@@ -6695,6 +6940,123 @@ func (r GetPipelineStepsResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetPipelineStepsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UnquarantineStepResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *StepQuarantine
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *NotFound
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UnquarantineStepResponse) GetJSON200() *StepQuarantine {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r UnquarantineStepResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r UnquarantineStepResponse) GetJSON404() *NotFound {
+	return r.JSON404
+}
+
+// GetBody returns the raw response body bytes
+func (r UnquarantineStepResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UnquarantineStepResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UnquarantineStepResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UnquarantineStepResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type QuarantineStepResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *StepQuarantine
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *NotFound
+	// JSON422 the response for an HTTP 422 `application/json` response
+	JSON422 *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r QuarantineStepResponse) GetJSON200() *StepQuarantine {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r QuarantineStepResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r QuarantineStepResponse) GetJSON404() *NotFound {
+	return r.JSON404
+}
+
+// GetJSON422 returns the response for an HTTP 422 `application/json` response
+func (r QuarantineStepResponse) GetJSON422() *Error {
+	return r.JSON422
+}
+
+// GetBody returns the raw response body bytes
+func (r QuarantineStepResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r QuarantineStepResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r QuarantineStepResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r QuarantineStepResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -8176,6 +8538,51 @@ func (c *ClientWithResponses) GetPipelineStepsWithResponse(ctx context.Context, 
 	return ParseGetPipelineStepsResponse(rsp)
 }
 
+// UnquarantineStepWithResponse Clear a step's quarantine
+//
+// Session-only. The step raises the `flaky_step` health signal again if it is still flaky. A step with no quarantine is fine: the answer is the same.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /api/pipelines/{pipelineId}/steps/{step}/quarantine (the `UnquarantineStep` operationId).
+func (c *ClientWithResponses) UnquarantineStepWithResponse(ctx context.Context, pipelineId PipelineId, step StepNamePath, reqEditors ...RequestEditorFn) (*UnquarantineStepResponse, error) {
+	rsp, err := c.UnquarantineStep(ctx, pipelineId, step, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUnquarantineStepResponse(rsp)
+}
+
+// QuarantineStepWithBodyWithResponse Mark a flaky step as known, so it stops making its pipeline unhealthy
+//
+// Session-only: an API token or an MCP client can read a quarantine but not set one. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/pipelines/{pipelineId}/steps/{step}/quarantine (the `QuarantineStep` operationId).
+func (c *ClientWithResponses) QuarantineStepWithBodyWithResponse(ctx context.Context, pipelineId PipelineId, step StepNamePath, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*QuarantineStepResponse, error) {
+	rsp, err := c.QuarantineStepWithBody(ctx, pipelineId, step, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseQuarantineStepResponse(rsp)
+}
+
+// QuarantineStepWithResponse Mark a flaky step as known, so it stops making its pipeline unhealthy
+//
+// Session-only: an API token or an MCP client can read a quarantine but not set one. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/pipelines/{pipelineId}/steps/{step}/quarantine (the `QuarantineStep` operationId).
+func (c *ClientWithResponses) QuarantineStepWithResponse(ctx context.Context, pipelineId PipelineId, step StepNamePath, body QuarantineStepJSONRequestBody, reqEditors ...RequestEditorFn) (*QuarantineStepResponse, error) {
+	rsp, err := c.QuarantineStep(ctx, pipelineId, step, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseQuarantineStepResponse(rsp)
+}
+
 // ListReposWithResponse List tracked repositories
 //
 // Returns a wrapper object for the known response body format(s).
@@ -9423,6 +9830,93 @@ func ParseGetPipelineStepsResponse(rsp *http.Response) (*GetPipelineStepsRespons
 			return nil, err
 		}
 		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUnquarantineStepResponse parses an HTTP response from a UnquarantineStepWithResponse call
+func ParseUnquarantineStepResponse(rsp *http.Response) (*UnquarantineStepResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UnquarantineStepResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest StepQuarantine
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseQuarantineStepResponse parses an HTTP response from a QuarantineStepWithResponse call
+func ParseQuarantineStepResponse(rsp *http.Response) (*QuarantineStepResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &QuarantineStepResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest StepQuarantine
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
 
 	}
 
