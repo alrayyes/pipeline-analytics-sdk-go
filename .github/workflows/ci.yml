@@ -114,14 +114,46 @@ jobs:
       - name: golangci-lint
         run: ./scripts/golangci-lint-docker.sh run ./...
 
-  govulncheck:
+  # Works out whether a pull request touches the Go dependencies. A skipped job reports
+  # success, so `govulncheck` can stay a required check; a `paths:` filter on the workflow
+  # would leave it pending forever. A push to main always runs it.
+  changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      deps: ${{ steps.groups.outputs.deps }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: govulncheck
-        run: >-
-          ./scripts/go-docker.sh sh -c
-          "go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./..."
+        with:
+          fetch-depth: 0
+      - id: groups
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "${EVENT}" != pull_request ] ||
+            git diff --name-only "${BASE}...HEAD" | grep -Eq '^(go\.mod|go\.sum|\.github/workflows/ci\.yml)$'; then
+            echo deps=true >> "$GITHUB_OUTPUT"
+          else
+            echo deps=false >> "$GITHUB_OUTPUT"
+          fi
+
+  # Fails only on advisories this change adds to go.mod over its base (rules/dependencies.md,
+  # #87). What's already on main is the scan's to track, in advisory-scan.yml.
+  govulncheck:
+    needs: changes
+    if: needs.changes.outputs.deps == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Pinned to a main commit of alrayyes/advisory-scan until its first release; re-pin then.
+      - uses: alrayyes/advisory-scan@425418a63e80eb10142fbd2e82127b7ef3a51d68
+        with:
+          mode: gate
+          command: >-
+            ./scripts/go-docker.sh sh -c
+            "go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./..."
 
   generated-code-is-fresh:
     runs-on: ubuntu-latest
