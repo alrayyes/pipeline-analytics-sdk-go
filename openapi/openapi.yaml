@@ -25,6 +25,7 @@ paths:
   /healthz:
     get:
       operationId: getHealthz
+      x-agent-excluded: "a liveness or readiness probe for the orchestrator, not an agent task"
       summary: Liveness -- the process is up and answering HTTP
       description: >
         Public and unauthenticated, and deliberately checks nothing else: it
@@ -45,6 +46,7 @@ paths:
   /readyz:
     get:
       operationId: getReadyz
+      x-agent-excluded: "a liveness or readiness probe for the orchestrator, not an agent task"
       summary: Readiness -- the instance can serve, its database answers
       description: >
         Public and unauthenticated, for the container's `HEALTHCHECK` and
@@ -92,6 +94,7 @@ paths:
   /api/mcp:
     post:
       operationId: mcpEndpoint
+      x-agent-excluded: "this is the MCP server itself"
       summary: MCP server (Streamable HTTP transport)
       description: >
         Serves an MCP server over the Streamable HTTP transport
@@ -178,6 +181,7 @@ paths:
   /api/forge-tokens:
     get:
       operationId: listForgeTokens
+      x-agent-excluded: "saved forge tokens are secrets managed by a person in a session, never by an agent"
       summary: The forge tokens saved for registering repositories
       description: >
         Session-only. Returns each saved token in its masked form only
@@ -203,6 +207,7 @@ paths:
           $ref: "#/components/responses/Unauthorized"
     put:
       operationId: saveForgeToken
+      x-agent-excluded: "saved forge tokens are secrets managed by a person in a session, never by an agent"
       summary: Save a forge token, replacing the one for that forge and instance
       description: >
         Session-only. Stores the token encrypted at rest, like a repo's token.
@@ -235,6 +240,7 @@ paths:
   /api/forge-tokens/{tokenId}:
     delete:
       operationId: deleteForgeToken
+      x-agent-excluded: "saved forge tokens are secrets managed by a person in a session, never by an agent"
       summary: Delete a saved forge token
       description: >
         Session-only. Repos already registered with it keep their own copy and
@@ -891,6 +897,7 @@ paths:
   /api/auth/register/options:
     post:
       operationId: webauthnRegisterOptions
+      x-agent-excluded: "sign-in ceremony: it mints the session an agent works inside"
       summary: Begin WebAuthn credential registration (first run only)
       tags: [auth]
       security: []
@@ -919,6 +926,7 @@ paths:
   /api/auth/register:
     post:
       operationId: webauthnRegister
+      x-agent-excluded: "sign-in ceremony: it mints the session an agent works inside"
       summary: Complete WebAuthn credential registration
       tags: [auth]
       security: []
@@ -949,6 +957,7 @@ paths:
   /api/auth/login/options:
     post:
       operationId: webauthnLoginOptions
+      x-agent-excluded: "sign-in ceremony: it mints the session an agent works inside"
       summary: Begin WebAuthn login
       tags: [auth]
       security: []
@@ -977,6 +986,7 @@ paths:
   /api/auth/login:
     post:
       operationId: webauthnLogin
+      x-agent-excluded: "sign-in ceremony: it mints the session an agent works inside"
       summary: Complete WebAuthn login
       tags: [auth]
       security: []
@@ -1005,6 +1015,7 @@ paths:
   /api/auth/logout:
     post:
       operationId: webauthnLogout
+      x-agent-excluded: "ends the signed-in person's own session, which an agent should not do for them"
       summary: End the current session
       tags: [auth]
       responses:
@@ -1016,6 +1027,7 @@ paths:
   /api/auth/tokens:
     post:
       operationId: issueApiToken
+      x-agent-excluded: "API tokens are secrets and issuing or revoking one is session-only, so an agent never mints its own access"
       summary: Issue a new API token
       description: >
         Session-only -- an API token can't be used to issue another one.
@@ -1048,6 +1060,7 @@ paths:
   /api/auth/tokens/{tokenId}:
     delete:
       operationId: revokeApiToken
+      x-agent-excluded: "API tokens are secrets and issuing or revoking one is session-only, so an agent never mints its own access"
       summary: Revoke an API token
       description: Session-only, same reasoning as issuing one.
       tags: [auth]
@@ -1070,6 +1083,7 @@ paths:
   /api/auth/credentials/options:
     post:
       operationId: addCredentialOptions
+      x-agent-excluded: "passkey management is session-only, and an agent has no business adding or removing the way a person signs in"
       summary: Begin an authenticated "add another passkey" ceremony
       description: >
         Session-only -- an API token can't enroll another credential on the
@@ -1102,6 +1116,7 @@ paths:
   /api/auth/credentials:
     get:
       operationId: listCredentials
+      x-agent-excluded: "passkey management is session-only, and an agent has no business adding or removing the way a person signs in"
       summary: List the account's registered credentials
       description: Session-only, same reasoning as addCredentialOptions.
       tags: [auth]
@@ -1120,6 +1135,7 @@ paths:
           $ref: "#/components/responses/Unauthorized"
     post:
       operationId: addCredential
+      x-agent-excluded: "passkey management is session-only, and an agent has no business adding or removing the way a person signs in"
       summary: Complete the "add another passkey" ceremony
       description: Session-only, same reasoning as addCredentialOptions.
       tags: [auth]
@@ -1154,6 +1170,7 @@ paths:
   /api/auth/credentials/{credentialId}:
     delete:
       operationId: revokeCredential
+      x-agent-excluded: "passkey management is session-only, and an agent has no business adding or removing the way a person signs in"
       summary: Revoke a credential
       description: >
         Session-only, same reasoning as addCredentialOptions. Rejected with
@@ -1188,6 +1205,7 @@ paths:
   /webhooks/github:
     post:
       operationId: githubWebhook
+      x-agent-excluded: "called by GitHub with a signature, not by an agent"
       summary: GitHub Actions webhook receiver (workflow_run / workflow_job events)
       tags: [webhooks]
       security: []
@@ -1225,6 +1243,7 @@ paths:
   /webhooks/forgejo:
     post:
       operationId: forgejoWebhook
+      x-agent-excluded: "called by Forgejo with a signature, not by an agent"
       summary: Forgejo Actions webhook receiver
       tags: [webhooks]
       security: []
