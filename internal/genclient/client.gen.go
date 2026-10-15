@@ -1963,7 +1963,7 @@ type ClientInterface interface {
 
 	// QuarantineStepWithBody Mark a flaky step as known, so it stops making its pipeline unhealthy
 	//
-	// Session-only: an API token or an MCP client can read a quarantine but not set one. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
+	// Session-only: an API token can read a quarantine but not set one. The `quarantine_step` MCP tool and the WebMCP tool act for a signed-in session only, and refuse an API token the same way. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -1972,7 +1972,7 @@ type ClientInterface interface {
 
 	// QuarantineStep Mark a flaky step as known, so it stops making its pipeline unhealthy
 	//
-	// Session-only: an API token or an MCP client can read a quarantine but not set one. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
+	// Session-only: an API token can read a quarantine but not set one. The `quarantine_step` MCP tool and the WebMCP tool act for a signed-in session only, and refuse an API token the same way. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -2658,7 +2658,7 @@ func (c *Client) UnquarantineStep(ctx context.Context, pipelineId PipelineId, st
 
 // QuarantineStepWithBody Mark a flaky step as known, so it stops making its pipeline unhealthy
 //
-// Session-only: an API token or an MCP client can read a quarantine but not set one. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
+// Session-only: an API token can read a quarantine but not set one. The `quarantine_step` MCP tool and the WebMCP tool act for a signed-in session only, and refuse an API token the same way. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
 //
 // Takes any type of body and a specified content type.
 //
@@ -2677,7 +2677,7 @@ func (c *Client) QuarantineStepWithBody(ctx context.Context, pipelineId Pipeline
 
 // QuarantineStep Mark a flaky step as known, so it stops making its pipeline unhealthy
 //
-// Session-only: an API token or an MCP client can read a quarantine but not set one. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
+// Session-only: an API token can read a quarantine but not set one. The `quarantine_step` MCP tool and the WebMCP tool act for a signed-in session only, and refuse an API token the same way. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -5611,7 +5611,7 @@ type ClientWithResponsesInterface interface {
 
 	// QuarantineStepWithBodyWithResponse Mark a flaky step as known, so it stops making its pipeline unhealthy
 	//
-	// Session-only: an API token or an MCP client can read a quarantine but not set one. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
+	// Session-only: an API token can read a quarantine but not set one. The `quarantine_step` MCP tool and the WebMCP tool act for a signed-in session only, and refuse an API token the same way. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -5620,7 +5620,7 @@ type ClientWithResponsesInterface interface {
 
 	// QuarantineStepWithResponse Mark a flaky step as known, so it stops making its pipeline unhealthy
 	//
-	// Session-only: an API token or an MCP client can read a quarantine but not set one. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
+	// Session-only: an API token can read a quarantine but not set one. The `quarantine_step` MCP tool and the WebMCP tool act for a signed-in session only, and refuse an API token the same way. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -8640,7 +8640,7 @@ func (c *ClientWithResponses) UnquarantineStepWithResponse(ctx context.Context, 
 
 // QuarantineStepWithBodyWithResponse Mark a flaky step as known, so it stops making its pipeline unhealthy
 //
-// Session-only: an API token or an MCP client can read a quarantine but not set one. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
+// Session-only: an API token can read a quarantine but not set one. The `quarantine_step` MCP tool and the WebMCP tool act for a signed-in session only, and refuse an API token the same way. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -8655,7 +8655,7 @@ func (c *ClientWithResponses) QuarantineStepWithBodyWithResponse(ctx context.Con
 
 // QuarantineStepWithResponse Mark a flaky step as known, so it stops making its pipeline unhealthy
 //
-// Session-only: an API token or an MCP client can read a quarantine but not set one. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
+// Session-only: an API token can read a quarantine but not set one. The `quarantine_step` MCP tool and the WebMCP tool act for a signed-in session only, and refuse an API token the same way. A quarantined step stays in the flaky list with its figures unchanged, but no longer raises the pipeline's `flaky_step` health signal or counts in the flaky-step ratio. The mark lasts 30 days from now; marking a step that is already quarantined renews it and replaces its note. It is recorded in this service only: no forge is contacted. The step isn't checked to be flaky, so a mark on a step that isn't does nothing until it is.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
