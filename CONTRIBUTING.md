@@ -21,18 +21,23 @@
 ./scripts/go-docker.sh sh -c "go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./..."
 ```
 
-`lefthook run pre-push` runs the same set (plus `go mod tidy -diff`), so
-that's the one command to run before opening a pull request.
+`lefthook run pre-push` runs the same set (plus `go mod tidy -diff`) except
+`govulncheck`, which CI owns, so that is the one command to run before opening a
+pull request.
 
 Two jobs share the dependency audit, both through
 [advisory-scan](https://github.com/alrayyes/advisory-scan). The `govulncheck`
-job runs on a pull request that changes `go.mod` or `go.sum`, audits the head
-and the base, and fails only on advisories the pull request adds. So an
-advisory published overnight doesn't turn unrelated pull requests red.
+job runs on a pull request that changes a `.go` file, `go.mod` or `go.sum`, audits
+the head and the base, and fails only on advisories the pull request adds. So
+an advisory published overnight doesn't turn unrelated pull requests red.
 `advisory-scan.yml` audits `main` daily, on every push that changes `go.mod`
 or `go.sum`, and on demand, and keeps one open issue titled "Dependency
 advisories". It closes that issue when the audit is clean. There's no ignore
 list: an advisory with no fix stays in that issue until one ships.
+
+No pre-push hook runs the audit: it would fail every push the day an
+advisory lands on `main`, whatever the push changed. CI owns the gate. To
+check by hand, run the `govulncheck` command from the build list above.
 
 `scripts/build-reports.sh` turns `coverage.out` and `junit.xml` into the
 published report layout; `scripts/build-reports.test.sh` checks it and runs
