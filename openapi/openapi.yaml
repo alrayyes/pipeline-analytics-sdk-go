@@ -181,7 +181,7 @@ paths:
   /api/forge-tokens:
     get:
       operationId: listForgeTokens
-      x-agent-excluded: "saved forge tokens are secrets managed by a person in a session, never by an agent"
+      x-agent-excluded: "the masked token list is for the person's own settings screen: no agent task needs it, and it would tell an agent which forges hold a stored credential"
       summary: The forge tokens saved for registering repositories
       description: >
         Session-only. Returns each saved token in its masked form only
@@ -1117,7 +1117,7 @@ paths:
   /api/auth/credentials:
     get:
       operationId: listCredentials
-      x-agent-excluded: "passkey management is session-only, and an agent has no business adding or removing the way a person signs in"
+      x-agent-excluded: "the list of registered passkeys is for the person's own security screen: no agent task needs it, and the operations beside it are session-only"
       summary: List the account's registered credentials
       description: Session-only, same reasoning as addCredentialOptions.
       tags: [auth]
