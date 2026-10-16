@@ -24,6 +24,16 @@
 `lefthook run pre-push` runs the same set (plus `go mod tidy -diff`), so
 that's the one command to run before opening a pull request.
 
+Two jobs share the dependency audit, both through
+[advisory-scan](https://github.com/alrayyes/advisory-scan). The `govulncheck`
+job runs on a pull request that changes `go.mod` or `go.sum`, audits the head
+and the base, and fails only on advisories the pull request adds. So an
+advisory published overnight doesn't turn unrelated pull requests red.
+`advisory-scan.yml` audits `main` daily, on every push that changes `go.mod`
+or `go.sum`, and on demand, and keeps one open issue titled "Dependency
+advisories". It closes that issue when the audit is clean. There's no ignore
+list: an advisory with no fix stays in that issue until one ships.
+
 `scripts/build-reports.sh` turns `coverage.out` and `junit.xml` into the
 published report layout; `scripts/build-reports.test.sh` checks it and runs
 in the `test` job. The `pages-deploy` job in `ci.yml` publishes the result

@@ -1,0 +1,38 @@
+# The scan half of rules/dependencies.md (#87): audit main and keep one open
+# "Dependency advisories" issue that lists what's there. Daily for advisories published against
+# pins that haven't moved, on a go.mod push so a merged fix closes the ticket at once, and by
+# hand. An audit that errors (registry down) fails the job and leaves the ticket alone.
+name: advisory-scan
+
+on:
+  schedule:
+    - cron: "41 5 * * *"
+  push:
+    branches: [main]
+    paths: [go.mod, go.sum, .github/workflows/advisory-scan.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: advisory-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Pinned to a main commit of alrayyes/advisory-scan until its first release; re-pin then.
+      - uses: alrayyes/advisory-scan@425418a63e80eb10142fbd2e82127b7ef3a51d68
+        with:
+          mode: scan
+          command: >-
+            ./scripts/go-docker.sh sh -c
+            "go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./..."
+          labels: dependencies
