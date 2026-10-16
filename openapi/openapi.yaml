@@ -339,6 +339,26 @@ paths:
           $ref: "#/components/responses/BadGateway"
 
   /api/repos/{repoId}:
+    get:
+      operationId: getRepo
+      summary: One tracked repository
+      description: >
+        The same repository the list returns for this id, with its token
+        masked, so a caller can name one repository without paging the list.
+      tags: [repos]
+      parameters:
+        - $ref: "#/components/parameters/RepoId"
+      responses:
+        "200":
+          description: The tracked repository
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Repo"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
     delete:
       operationId: untrackRepo
       summary: Stop tracking a repository

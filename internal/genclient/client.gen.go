@@ -2034,6 +2034,13 @@ type ClientInterface interface {
 	// Corresponds with DELETE /api/repos/{repoId} (the `UntrackRepo` operationId).
 	UntrackRepo(ctx context.Context, repoId RepoId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetRepo One tracked repository
+	//
+	// The same repository the list returns for this id, with its token masked, so a caller can name one repository without paging the list.
+	//
+	// Corresponds with GET /api/repos/{repoId} (the `GetRepo` operationId).
+	GetRepo(ctx context.Context, repoId RepoId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetRepoUsage Runner-minutes usage per workflow for a repository
 	//
 	// Corresponds with GET /api/repos/{repoId}/usage (the `GetRepoUsage` operationId).
@@ -2809,6 +2816,23 @@ func (c *Client) ListRepoIdentifiers(ctx context.Context, params *ListRepoIdenti
 // Corresponds with DELETE /api/repos/{repoId} (the `UntrackRepo` operationId).
 func (c *Client) UntrackRepo(ctx context.Context, repoId RepoId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUntrackRepoRequest(c.Server, repoId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetRepo One tracked repository
+//
+// The same repository the list returns for this id, with its token masked, so a caller can name one repository without paging the list.
+//
+// Corresponds with GET /api/repos/{repoId} (the `GetRepo` operationId).
+func (c *Client) GetRepo(ctx context.Context, repoId RepoId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRepoRequest(c.Server, repoId)
 	if err != nil {
 		return nil, err
 	}
@@ -4515,6 +4539,40 @@ func NewUntrackRepoRequest(server string, repoId RepoId) (*http.Request, error) 
 	return req, nil
 }
 
+// NewGetRepoRequest constructs an http.Request for the GetRepo method
+func NewGetRepoRequest(server string, repoId RepoId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "repoId", repoId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/repos/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetRepoUsageRequest constructs an http.Request for the GetRepoUsage method
 func NewGetRepoUsageRequest(server string, repoId RepoId, params *GetRepoUsageParams) (*http.Request, error) {
 	var err error
@@ -5687,6 +5745,15 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with DELETE /api/repos/{repoId} (the `UntrackRepo` operationId).
 	UntrackRepoWithResponse(ctx context.Context, repoId RepoId, reqEditors ...RequestEditorFn) (*UntrackRepoResponse, error)
+
+	// GetRepoWithResponse One tracked repository
+	//
+	// The same repository the list returns for this id, with its token masked, so a caller can name one repository without paging the list.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/repos/{repoId} (the `GetRepo` operationId).
+	GetRepoWithResponse(ctx context.Context, repoId RepoId, reqEditors ...RequestEditorFn) (*GetRepoResponse, error)
 
 	// GetRepoUsageWithResponse Runner-minutes usage per workflow for a repository
 	//
@@ -7426,6 +7493,61 @@ func (r UntrackRepoResponse) ContentType() string {
 	return ""
 }
 
+type GetRepoResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Repo
+	// JSON401 the response for an HTTP 401 `application/json` response
+	JSON401 *Unauthorized
+	// JSON404 the response for an HTTP 404 `application/json` response
+	JSON404 *NotFound
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetRepoResponse) GetJSON200() *Repo {
+	return r.JSON200
+}
+
+// GetJSON401 returns the response for an HTTP 401 `application/json` response
+func (r GetRepoResponse) GetJSON401() *Unauthorized {
+	return r.JSON401
+}
+
+// GetJSON404 returns the response for an HTTP 404 `application/json` response
+func (r GetRepoResponse) GetJSON404() *NotFound {
+	return r.JSON404
+}
+
+// GetBody returns the raw response body bytes
+func (r GetRepoResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetRepoResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetRepoResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetRepoResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetRepoUsageResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -8769,6 +8891,21 @@ func (c *ClientWithResponses) UntrackRepoWithResponse(ctx context.Context, repoI
 		return nil, err
 	}
 	return ParseUntrackRepoResponse(rsp)
+}
+
+// GetRepoWithResponse One tracked repository
+//
+// The same repository the list returns for this id, with its token masked, so a caller can name one repository without paging the list.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/repos/{repoId} (the `GetRepo` operationId).
+func (c *ClientWithResponses) GetRepoWithResponse(ctx context.Context, repoId RepoId, reqEditors ...RequestEditorFn) (*GetRepoResponse, error) {
+	rsp, err := c.GetRepo(ctx, repoId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetRepoResponse(rsp)
 }
 
 // GetRepoUsageWithResponse Runner-minutes usage per workflow for a repository
@@ -10214,6 +10351,46 @@ func ParseUntrackRepoResponse(rsp *http.Response) (*UntrackRepoResponse, error) 
 	switch {
 	case rsp.StatusCode == 204:
 		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest Unauthorized
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFound
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetRepoResponse parses an HTTP response from a GetRepoWithResponse call
+func ParseGetRepoResponse(rsp *http.Response) (*GetRepoResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetRepoResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Repo
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest Unauthorized
