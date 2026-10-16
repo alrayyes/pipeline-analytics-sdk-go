@@ -132,14 +132,15 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha }}
         run: |
           if [ "${EVENT}" != pull_request ] ||
-            git diff --name-only "${BASE}...HEAD" | grep -Eq '^(go\.mod|go\.sum|\.github/workflows/ci\.yml)$'; then
+            git diff --name-only "${BASE}...HEAD" | grep -Eq '^(go\.mod|go\.sum|\.github/workflows/ci\.yml)$|\.go$'; then
             echo deps=true >> "$GITHUB_OUTPUT"
           else
             echo deps=false >> "$GITHUB_OUTPUT"
           fi
 
   # Fails only on advisories this change adds to go.mod over its base (rules/dependencies.md,
-  # #87). What's already on main is the scan's to track, in advisory-scan.yml.
+  # #87). What's already on main is the scan's to track, in advisory-scan.yml. Go source
+  # counts too: govulncheck reports only vulnerable code the build calls.
   govulncheck:
     needs: changes
     if: needs.changes.outputs.deps == 'true'
