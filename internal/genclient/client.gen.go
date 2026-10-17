@@ -7455,6 +7455,8 @@ type UntrackRepoResponse struct {
 	JSON401 *Unauthorized
 	// JSON404 the response for an HTTP 404 `application/json` response
 	JSON404 *NotFound
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *InternalError
 }
 
 // GetJSON401 returns the response for an HTTP 401 `application/json` response
@@ -7465,6 +7467,11 @@ func (r UntrackRepoResponse) GetJSON401() *Unauthorized {
 // GetJSON404 returns the response for an HTTP 404 `application/json` response
 func (r UntrackRepoResponse) GetJSON404() *NotFound {
 	return r.JSON404
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r UntrackRepoResponse) GetJSON500() *InternalError {
+	return r.JSON500
 }
 
 // GetBody returns the raw response body bytes
@@ -7567,6 +7574,8 @@ type GetRepoUsageResponse struct {
 	JSON401 *Unauthorized
 	// JSON404 the response for an HTTP 404 `application/json` response
 	JSON404 *NotFound
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *InternalError
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
@@ -7582,6 +7591,11 @@ func (r GetRepoUsageResponse) GetJSON401() *Unauthorized {
 // GetJSON404 returns the response for an HTTP 404 `application/json` response
 func (r GetRepoUsageResponse) GetJSON404() *NotFound {
 	return r.JSON404
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r GetRepoUsageResponse) GetJSON500() *InternalError {
+	return r.JSON500
 }
 
 // GetBody returns the raw response body bytes
@@ -7679,6 +7693,8 @@ type CancelRunResponse struct {
 	JSON404 *NotFound
 	// JSON409 the response for an HTTP 409 `application/json` response
 	JSON409 *NotActionable
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *InternalError
 	// JSON501 the response for an HTTP 501 `application/json` response
 	JSON501 *NotImplemented
 	// JSON502 the response for an HTTP 502 `application/json` response
@@ -7703,6 +7719,11 @@ func (r CancelRunResponse) GetJSON404() *NotFound {
 // GetJSON409 returns the response for an HTTP 409 `application/json` response
 func (r CancelRunResponse) GetJSON409() *NotActionable {
 	return r.JSON409
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r CancelRunResponse) GetJSON500() *InternalError {
+	return r.JSON500
 }
 
 // GetJSON501 returns the response for an HTTP 501 `application/json` response
@@ -7753,6 +7774,8 @@ type GetJobLogResponse struct {
 	JSON401 *Unauthorized
 	// JSON404 the response for an HTTP 404 `application/json` response
 	JSON404 *NotFound
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *InternalError
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
@@ -7768,6 +7791,11 @@ func (r GetJobLogResponse) GetJSON401() *Unauthorized {
 // GetJSON404 returns the response for an HTTP 404 `application/json` response
 func (r GetJobLogResponse) GetJSON404() *NotFound {
 	return r.JSON404
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r GetJobLogResponse) GetJSON500() *InternalError {
+	return r.JSON500
 }
 
 // GetBody returns the raw response body bytes
@@ -7810,6 +7838,8 @@ type RerunRunResponse struct {
 	JSON404 *NotFound
 	// JSON409 the response for an HTTP 409 `application/json` response
 	JSON409 *NotActionable
+	// JSON500 the response for an HTTP 500 `application/json` response
+	JSON500 *InternalError
 	// JSON501 the response for an HTTP 501 `application/json` response
 	JSON501 *NotImplemented
 	// JSON502 the response for an HTTP 502 `application/json` response
@@ -7834,6 +7864,11 @@ func (r RerunRunResponse) GetJSON404() *NotFound {
 // GetJSON409 returns the response for an HTTP 409 `application/json` response
 func (r RerunRunResponse) GetJSON409() *NotActionable {
 	return r.JSON409
+}
+
+// GetJSON500 returns the response for an HTTP 500 `application/json` response
+func (r RerunRunResponse) GetJSON500() *InternalError {
+	return r.JSON500
 }
 
 // GetJSON501 returns the response for an HTTP 501 `application/json` response
@@ -10376,6 +10411,13 @@ func ParseUntrackRepoResponse(rsp *http.Response) (*UntrackRepoResponse, error) 
 		}
 		response.JSON404 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
 	}
 
 	return response, nil
@@ -10462,6 +10504,13 @@ func ParseGetRepoUsageResponse(rsp *http.Response) (*GetRepoUsageResponse, error
 			return nil, err
 		}
 		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
 
 	}
 
@@ -10553,6 +10602,13 @@ func ParseCancelRunResponse(rsp *http.Response) (*CancelRunResponse, error) {
 		}
 		response.JSON409 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
 		var dest NotImplemented
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -10607,6 +10663,13 @@ func ParseGetJobLogResponse(rsp *http.Response) (*GetJobLogResponse, error) {
 		}
 		response.JSON404 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
 	}
 
 	return response, nil
@@ -10656,6 +10719,13 @@ func ParseRerunRunResponse(rsp *http.Response) (*RerunRunResponse, error) {
 			return nil, err
 		}
 		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
 		var dest NotImplemented
