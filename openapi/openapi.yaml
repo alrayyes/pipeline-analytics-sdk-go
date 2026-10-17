@@ -359,6 +359,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
     delete:
       operationId: untrackRepo
       summary: Stop tracking a repository
@@ -1464,6 +1466,12 @@ components:
             $ref: "#/components/schemas/Error"
     NotFound:
       description: No resource with that id
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    InternalError:
+      description: The store failed; the cause is logged, not returned
       content:
         application/json:
           schema:
