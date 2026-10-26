@@ -1,6 +1,8 @@
 pre-commit:
   parallel: false
   commands:
+    gitleaks:
+      run: gitleaks git --staged --redact --no-banner
     gofmt:
       glob: "*.go"
       run: ./scripts/go-docker.sh gofmt -w {staged_files}
@@ -11,9 +13,13 @@ commit-msg:
     commitlint:
       run: bunx commitlint --edit {1}
 
+# gitleaks scans the whole history rather than the unpushed range: it takes
+# well under a second at this size, and CI does the same (rules/secrets.md).
 pre-push:
   parallel: false
   commands:
+    gitleaks:
+      run: gitleaks git --redact --no-banner
     go-mod-tidy:
       run: ./scripts/go-docker.sh sh -c "go mod tidy -diff"
     go-vet:
