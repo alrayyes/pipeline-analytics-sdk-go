@@ -34,3 +34,19 @@ updates:
         update-types: [minor, patch]
       actions-major:
         update-types: [major]
+  # The stub Dockerfile that pins gitleaks for .github/workflows/gitleaks.yml.
+  # Dependabot doesn't read a workflow's `container:`, and the workflow builds
+  # this file instead. ci: because it changes the pipeline, not what ships.
+  - package-ecosystem: docker
+    directory: /.github/gitleaks
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    groups:
+      gitleaks:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      gitleaks-major:
+        patterns: ["*"]
+        update-types: [major]
