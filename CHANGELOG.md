@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.24.1](https://github.com/alrayyes/pipeline-analytics-sdk-go/compare/v1.24.0...v1.24.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* bump github.com/oapi-codegen/runtime ([#108](https://github.com/alrayyes/pipeline-analytics-sdk-go/issues/108)) ([453fc59](https://github.com/alrayyes/pipeline-analytics-sdk-go/commit/453fc59abbfa3ab914c0dd428fc88027b84bd02d))
+
 ## [1.24.0](https://github.com/alrayyes/pipeline-analytics-sdk-go/compare/v1.23.0...v1.24.0) (2026-10-17)
 
 
